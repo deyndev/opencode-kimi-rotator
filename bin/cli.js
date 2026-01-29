@@ -23,6 +23,9 @@ async function main() {
       case 'rotate':
         await rotate(manager);
         break;
+      case 'use-key':
+        await useKey(manager, args.slice(1));
+        break;
       case 'set-strategy':
         await setStrategy(manager, args.slice(1));
         break;
@@ -111,7 +114,7 @@ async function removeKey(manager, args) {
 
 async function rotate(manager) {
   const result = await manager.rotateToNext();
-  
+
   if (!result) {
     console.log('No Kimi API keys configured.');
     return;
@@ -120,6 +123,24 @@ async function rotate(manager) {
   console.log(`✓ Rotated to next Kimi API key`);
   console.log(`  Now using: ${result.account.name} (index ${result.index})`);
   console.log(`  Reason: ${result.reason}`);
+}
+
+async function useKey(manager, args) {
+  const index = parseInt(args[0], 10);
+
+  if (isNaN(index)) {
+    console.error('Usage: opencode kimi use-key <index>');
+    process.exit(1);
+  }
+
+  const accounts = await manager.listKeys();
+  if (index < 0 || index >= accounts.length) {
+    console.error(`Invalid index. Valid range: 0-${accounts.length - 1}`);
+    process.exit(1);
+  }
+
+  await manager.setActiveIndex(index);
+  console.log(`✓ Now using: ${accounts[index].name} (index ${index})`);
 }
 
 async function setStrategy(manager, args) {
@@ -149,6 +170,7 @@ function showHelp() {
   console.log('  list-keys                 List all configured keys');
   console.log('  remove-key <index>        Remove a key by index');
   console.log('  rotate                    Manually rotate to next key');
+  console.log('  use-key <index>           Switch to a specific key');
   console.log('  set-strategy <strategy>   Set rotation strategy');
   console.log('  help                      Show this help message');
   console.log('');
@@ -161,6 +183,7 @@ function showHelp() {
   console.log('  opencode kimi add-key sk-kimi-xxx MyAccount');
   console.log('  opencode kimi list-keys');
   console.log('  opencode kimi rotate');
+  console.log('  opencode kimi use-key 1');
 }
 
 function maskKey(key) {
