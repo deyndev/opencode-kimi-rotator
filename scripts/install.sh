@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # OpenCode Kimi Rotator - Automatic Installation Script
-# Usage: curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/opencode-kimi-rotator/main/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/install.sh | bash
 #
 
 set -e
@@ -147,7 +147,7 @@ update_config() {
         # Check if provider config exists
         if ! grep -q "kimi-for-coding" "$CONFIG_FILE"; then
             print_info "Please manually add the Kimi provider configuration."
-            echo "See: https://github.com/YOUR_USERNAME/opencode-kimi-rotator#models"
+            echo "See: https://github.com/deyndev/opencode-kimi-rotator#models"
         fi
     else
         # Create new config
@@ -176,7 +176,7 @@ print_next_steps() {
     echo -e "   ${BLUE}opencode run \"Hello\" --model=kimi-for-coding/k2p5${NC}"
     echo ""
     echo "For more information:"
-    echo -e "   ${BLUE}https://github.com/YOUR_USERNAME/opencode-kimi-rotator${NC}"
+    echo -e "   ${BLUE}https://github.com/deyndev/opencode-kimi-rotator${NC}"
     echo ""
 }
 

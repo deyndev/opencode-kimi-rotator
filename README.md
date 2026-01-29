@@ -31,7 +31,7 @@ Automatically rotate between multiple Kimi API keys to handle rate limits and di
 Paste this into any LLM agent (Claude Code, OpenCode, Cursor, etc.):
 
 ```
-Install the opencode-kimi-rotator plugin and add the Kimi model definitions to ~/.config/opencode/opencode.json by following: https://raw.githubusercontent.com/YOUR_USERNAME/opencode-kimi-rotator/main/README.md
+Install the opencode-kimi-rotator plugin and add the Kimi model definitions to ~/.config/opencode/opencode.json by following: https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/README.md
 ```
 
 **Option B: Manual setup**
@@ -366,13 +366,13 @@ Configure agent models in `oh-my-opencode.json`:
 For automated setup, you can use this one-liner:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/opencode-kimi-rotator/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/install.sh | bash
 ```
 
 Or for Windows (PowerShell):
 
 ```powershell
-irm https://raw.githubusercontent.com/YOUR_USERNAME/opencode-kimi-rotator/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/install.ps1 | iex
 ```
 
 ---
@@ -383,7 +383,7 @@ irm https://raw.githubusercontent.com/YOUR_USERNAME/opencode-kimi-rotator/main/i
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/YOUR_USERNAME/opencode-kimi-rotator.git
+git clone https://github.com/deyndev/opencode-kimi-rotator.git
 cd opencode-kimi-rotator
 ```
 

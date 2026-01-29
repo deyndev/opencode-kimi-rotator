@@ -1,5 +1,5 @@
 # OpenCode Kimi Rotator - Automatic Installation Script (PowerShell)
-# Usage: irm https://raw.githubusercontent.com/YOUR_USERNAME/opencode-kimi-rotator/main/install.ps1 | iex
+# Usage: irm https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/install.ps1 | iex
 #
 
 $ErrorActionPreference = "Stop"
@@ -143,7 +143,7 @@ function Update-Config {
         
         if ($configContent -notmatch "kimi-for-coding") {
             Print-Info "Please manually add the Kimi provider configuration."
-            Write-Host "See: https://github.com/YOUR_USERNAME/opencode-kimi-rotator#models"
+            Write-Host "See: https://github.com/deyndev/opencode-kimi-rotator#models"
         }
     } else {
         Print-Info "Creating new OpenCode configuration..."
@@ -171,7 +171,7 @@ function Print-NextSteps {
     Write-Host "   opencode run \"Hello\" --model=kimi-for-coding/k2p5" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "For more information:"
-    Write-Host "   https://github.com/YOUR_USERNAME/opencode-kimi-rotator" -ForegroundColor Cyan
+    Write-Host "   https://github.com/deyndev/opencode-kimi-rotator" -ForegroundColor Cyan
     Write-Host ""
 }
 

@@ -31,12 +31,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/YOUR_USERNAME/opencode-kimi-rotator.git"
+    "url": "git+https://github.com/deyndev/opencode-kimi-rotator.git"
   },
   "bugs": {
-    "url": "https://github.com/YOUR_USERNAME/opencode-kimi-rotator/issues"
+    "url": "https://github.com/deyndev/opencode-kimi-rotator/issues"
   },
-  "homepage": "https://github.com/YOUR_USERNAME/opencode-kimi-rotator#readme",
+  "homepage": "https://github.com/deyndev/opencode-kimi-rotator#readme",
   "dependencies": {
     "proper-lockfile": "^4.1.2"
   },
