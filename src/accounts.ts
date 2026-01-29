@@ -113,6 +113,10 @@ export class KimiAccountManager {
     return this.getNextAccount(true);
   }
 
+  async setActiveIndex(index: number): Promise<void> {
+    return this.storage.setActiveIndex(index);
+  }
+
   private async roundRobinRotation(config: KimiAccountsConfig): Promise<RotationResult> {
     const availableIndices = this.getAvailableIndices(config);
     
