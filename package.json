@@ -1,0 +1,63 @@
+{
+  "name": "opencode-kimi-rotator",
+  "version": "1.0.0",
+  "description": "Kimi API Key Rotator for OpenCode - Automatically rotate between multiple Kimi API keys to handle rate limits",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "bin": {
+    "opencode-kimi": "./bin/cli.js",
+    "kimi-rotator": "./bin/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "opencode",
+    "plugin",
+    "kimi",
+    "moonshot",
+    "api-key",
+    "rotation",
+    "rate-limit",
+    "load-balancer",
+    "multi-account"
+  ],
+  "author": "OpenCode User",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YOUR_USERNAME/opencode-kimi-rotator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/YOUR_USERNAME/opencode-kimi-rotator/issues"
+  },
+  "homepage": "https://github.com/YOUR_USERNAME/opencode-kimi-rotator#readme",
+  "dependencies": {
+    "proper-lockfile": "^4.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/proper-lockfile": "^4.1.4",
+    "typescript": "^5.3.0"
+  },
+  "peerDependencies": {
+    "@opencode-ai/plugin": "^1.0.0"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
