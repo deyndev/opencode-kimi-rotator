@@ -116,10 +116,20 @@ class KimiStorage {
   }
 }
 
+const HEALTH_CONFIG = {
+  MIN_HEALTH_SCORE: 30,
+  STICKY_BONUS: 50,
+  MAX_FRESHNESS_BONUS: 20,
+  FRESHNESS_DECAY_HOURS: 1,
+  SUCCESS_BONUS: 2,
+  RATE_LIMIT_PENALTY: 15,
+  FAILURE_PENALTY: 20,
+  MAX_HEALTH: 100,
+  MIN_HEALTH: 0,
+} as const;
+
 class KimiAccountManager {
   private storage: KimiStorage;
-  private minHealthScore = 30;
-  private stickyBonus = 50;
 
   constructor() {
     this.storage = new KimiStorage();
@@ -163,7 +173,7 @@ class KimiAccountManager {
 
   async markAccountSuccess(index: number): Promise<void> {
     const account = await this.getAccount(index);
-    const newHealthScore = Math.min(100, account.healthScore + 2);
+    const newHealthScore = Math.min(HEALTH_CONFIG.MAX_HEALTH, account.healthScore + HEALTH_CONFIG.SUCCESS_BONUS);
 
     await this.storage.updateAccount(index, {
       healthScore: newHealthScore,
@@ -174,7 +184,7 @@ class KimiAccountManager {
 
   async markAccountRateLimited(index: number, retryAfterMs: number): Promise<void> {
     const account = await this.getAccount(index);
-    const newHealthScore = Math.max(0, account.healthScore - 15);
+    const newHealthScore = Math.max(HEALTH_CONFIG.MIN_HEALTH, account.healthScore - HEALTH_CONFIG.RATE_LIMIT_PENALTY);
 
     await this.storage.updateAccount(index, {
       healthScore: newHealthScore,
@@ -185,7 +195,7 @@ class KimiAccountManager {
 
   async markAccountFailure(index: number): Promise<void> {
     const account = await this.getAccount(index);
-    const newHealthScore = Math.max(0, account.healthScore - 20);
+    const newHealthScore = Math.max(HEALTH_CONFIG.MIN_HEALTH, account.healthScore - HEALTH_CONFIG.FAILURE_PENALTY);
 
     await this.storage.updateAccount(index, {
       healthScore: newHealthScore,
@@ -268,7 +278,7 @@ class KimiAccountManager {
     const currentIndex = config.activeIndex;
     const currentAccount = config.accounts[currentIndex];
 
-    if (!forceRotation && !this.isRateLimited(currentAccount) && currentAccount.healthScore > this.minHealthScore) {
+    if (!forceRotation && !this.isRateLimited(currentAccount) && currentAccount.healthScore > HEALTH_CONFIG.MIN_HEALTH_SCORE) {
       await this.markAccountUsed(currentIndex);
       return {
         account: currentAccount,
@@ -311,12 +321,13 @@ class KimiAccountManager {
 
   private calculateAccountScore(account: KimiAccount, isCurrent: boolean): number {
     const timeSinceLastUse = Date.now() - account.lastUsed;
-    const freshnessBonus = Math.min(20, timeSinceLastUse / (1000 * 60 * 60));
+    const freshnessBonus = Math.min(HEALTH_CONFIG.MAX_FRESHNESS_BONUS, 
+      timeSinceLastUse / (1000 * 60 * 60 * HEALTH_CONFIG.FRESHNESS_DECAY_HOURS));
 
     let score = account.healthScore + freshnessBonus;
 
     if (isCurrent) {
-      score += this.stickyBonus;
+      score += HEALTH_CONFIG.STICKY_BONUS;
     }
 
     return score;
@@ -325,7 +336,7 @@ class KimiAccountManager {
   private getAvailableIndices(config: KimiAccountsConfig): number[] {
     return config.accounts
       .map((account, index) => ({ account, index }))
-      .filter(({ account }) => !this.isRateLimited(account) && account.healthScore >= this.minHealthScore)
+      .filter(({ account }) => !this.isRateLimited(account) && account.healthScore >= HEALTH_CONFIG.MIN_HEALTH_SCORE)
       .map(({ index }) => index);
   }
 
@@ -443,6 +454,7 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
     if (url.includes('api.kimi.com')) {
       const nextAccount = await accountManager!.getNextAccount();
       if (nextAccount) {
+        currentAccountIndex = nextAccount.index;
         const keyLabel = nextAccount.account.key.substring(0, 18) + '...';
         const position = nextAccount.index + 1;
         const allKeysNow = await accountManager!.listKeys();
@@ -454,7 +466,25 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
         headers.set('x-api-key', nextAccount.account.key);
         headers.delete('Authorization');
 
-        return originalFetch!(input, { ...init, headers });
+        try {
+          const response = await originalFetch!(input, { ...init, headers });
+          
+          if (response.status === 429) {
+            const retryAfter = response.headers.get('retry-after');
+            const retryAfterMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 60000;
+            await accountManager!.markAccountRateLimited(currentAccountIndex, retryAfterMs);
+            await showToast(`⚠️ Key ${position} rate limited`, 'warning');
+          } else if (response.ok) {
+            await accountManager!.markAccountSuccess(currentAccountIndex);
+          } else if (response.status >= 500) {
+            await accountManager!.markAccountFailure(currentAccountIndex);
+          }
+          
+          return response;
+        } catch (error) {
+          await accountManager!.markAccountFailure(currentAccountIndex);
+          throw error;
+        }
       }
     }
 
@@ -479,7 +509,7 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
       loader: async () => {
         const auth = await getAuth();
         if (!auth) {
-          throw new Error('No Kimi API keys configured. Run: opencode kimi add-key <your-api-key>');
+          throw new Error('No Kimi API keys configured. Run: opencode-kimi add-key');
         }
 
         const kimiBaseUrl = 'https://api.kimi.com/coding/v1';
@@ -508,3 +538,5 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
 };
 
 export default KimiRotatorPlugin;
+export { KimiAccountManager, KimiStorage };
+export type { KimiAccount, KimiAccountsConfig };

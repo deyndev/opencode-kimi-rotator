@@ -2,7 +2,7 @@
   "name": "opencode-kimi-rotator",
   "version": "1.0.0",
   "description": "Kimi API Key Rotator for OpenCode - Automatically rotate between multiple Kimi API keys to handle rate limits",
-  "main": "./dist/index.js",
+  "main": "./dist/plugin.js",
   "types": "dist/index.d.ts",
   "type": "module",
   "bin": {

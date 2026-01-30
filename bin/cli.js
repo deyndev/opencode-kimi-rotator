@@ -40,22 +40,56 @@ async function main() {
   }
 }
 
+const API_KEY_PATTERN = /^sk-kimi-[a-zA-Z0-9_-]+$/;
+const API_KEY_MIN_LENGTH = 20;
+const API_KEY_MAX_LENGTH = 128;
+const MAX_ACCOUNTS = 100;
+const MAX_ACCOUNT_NAME_LENGTH = 64;
+
 function validateApiKey(key) {
+  if (!key || typeof key !== 'string') {
+    return { valid: false, error: 'API key is required' };
+  }
+  
   if (!key.startsWith('sk-kimi-')) {
     return { valid: false, error: 'API key must start with "sk-kimi-"' };
   }
-  if (key.length < 20) {
-    return { valid: false, error: 'API key appears to be too short' };
+  
+  if (key.length < API_KEY_MIN_LENGTH) {
+    return { valid: false, error: `API key must be at least ${API_KEY_MIN_LENGTH} characters` };
   }
+  
+  if (key.length > API_KEY_MAX_LENGTH) {
+    return { valid: false, error: `API key must not exceed ${API_KEY_MAX_LENGTH} characters` };
+  }
+  
+  if (!API_KEY_PATTERN.test(key)) {
+    return { valid: false, error: 'API key contains invalid characters' };
+  }
+  
   return { valid: true };
+}
+
+function sanitizeAccountName(name) {
+  if (!name) return null;
+  
+  const trimmed = name.trim();
+  
+  if (trimmed.length === 0) return null;
+  
+  if (trimmed.length > MAX_ACCOUNT_NAME_LENGTH) {
+    return trimmed.substring(0, MAX_ACCOUNT_NAME_LENGTH);
+  }
+  
+  return trimmed.replace(/[<>\"']/g, '');
 }
 
 async function addKey(manager, args) {
   const key = args[0];
-  const name = args[1];
+  const rawName = args[1];
 
   if (!key) {
-    console.error('Usage: opencode kimi add-key <api-key> [name]');
+    console.error('Usage: opencode-kimi add-key <api-key> [name]');
     process.exit(1);
   }
 
@@ -65,10 +99,23 @@ async function addKey(manager, args) {
     process.exit(1);
   }
 
-  const account = await manager.addKey(key, name);
   const accounts = await manager.listKeys();
-  console.log(`✓ Added Kimi API key: ${account.name}`);
-  console.log(`  Index: ${accounts.length - 1}`);
+  if (accounts.length >= MAX_ACCOUNTS) {
+    console.error(`Error: Maximum number of accounts (${MAX_ACCOUNTS}) reached`);
+    process.exit(1);
+  }
+
+  const name = sanitizeAccountName(rawName);
+
+  try {
+    const account = await manager.addKey(key, name);
+    const updatedAccounts = await manager.listKeys();
+    console.log(`✓ Added Kimi API key: ${account.name}`);
+    console.log(`  Index: ${updatedAccounts.length - 1}`);
+  } catch (error) {
+    console.error(`Error: ${error.message}`);
+    process.exit(1);
+  }
 }
 
 async function listKeys(manager) {
@@ -76,7 +123,7 @@ async function listKeys(manager) {
 
   if (accounts.length === 0) {
     console.log('No Kimi API keys configured.');
-    console.log('Run: opencode kimi add-key <your-api-key>');
+    console.log('Run: opencode-kimi add-key <your-api-key>');
     return;
   }
 
@@ -179,7 +226,7 @@ async function setStrategy(manager, args) {
 function showHelp() {
   console.log('Kimi API Key Rotator for OpenCode');
   console.log('');
-  console.log('Usage: opencode kimi <command> [options]');
+  console.log('Usage: opencode-kimi <command> [options]');
   console.log('');
   console.log('Commands:');
   console.log('  add-key <key> [name]     Add a new Kimi API key');
@@ -196,10 +243,10 @@ function showHelp() {
   console.log('  sticky        - Stay on one key until rate limited');
   console.log('');
   console.log('Examples:');
-  console.log('  opencode kimi add-key sk-kimi-xxx MyAccount');
-  console.log('  opencode kimi list-keys');
-  console.log('  opencode kimi rotate');
-  console.log('  opencode kimi use-key 1');
+  console.log('  opencode-kimi add-key sk-kimi-xxx MyAccount');
+  console.log('  opencode-kimi list-keys');
+  console.log('  opencode-kimi rotate');
+  console.log('  opencode-kimi use-key 1');
 }
 
 function maskKey(key) {

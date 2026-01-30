@@ -12,13 +12,15 @@ import {
 
 const ACCOUNTS_FILE_NAME = 'kimi-accounts.json';
 const GITIGNORE_CONTENT = '# Kimi Rotator\nkimi-accounts.json\n';
+const LOCK_STALE_MS = 5000;
+const LOCK_RETRIES = 3;
 
 export class KimiStorage {
   private configDir: string;
   private accountsFilePath: string;
   private lockOptions = {
-    stale: 5000,
-    retries: 3,
+    stale: LOCK_STALE_MS,
+    retries: LOCK_RETRIES,
   };
 
   constructor() {
@@ -155,16 +157,19 @@ export class KimiStorage {
   private async acquireLock(): Promise<() => Promise<void>> {
     await fs.mkdir(path.dirname(this.accountsFilePath), { recursive: true });
     
+    const lockFilePath = `${this.accountsFilePath}.lock`;
+    
     try {
       await fs.access(this.accountsFilePath);
     } catch {
       await fs.writeFile(
         this.accountsFilePath,
-        JSON.stringify({ ...DEFAULT_CONFIG, accounts: [] })
+        JSON.stringify({ ...DEFAULT_CONFIG, accounts: [] }),
+        { flag: 'wx' }
       );
     }
     
-    const release = await lockfile.lock(this.accountsFilePath, this.lockOptions);
+    const release = await lockfile.lock(lockFilePath, this.lockOptions);
     return release;
   }
 }
