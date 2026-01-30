@@ -40,12 +40,28 @@ async function main() {
   }
 }
 
+function validateApiKey(key) {
+  if (!key.startsWith('sk-kimi-')) {
+    return { valid: false, error: 'API key must start with "sk-kimi-"' };
+  }
+  if (key.length < 20) {
+    return { valid: false, error: 'API key appears to be too short' };
+  }
+  return { valid: true };
+}
+
 async function addKey(manager, args) {
   const key = args[0];
   const name = args[1];
 
   if (!key) {
     console.error('Usage: opencode kimi add-key <api-key> [name]');
+    process.exit(1);
+  }
+
+  const validation = validateApiKey(key);
+  if (!validation.valid) {
+    console.error(`Error: ${validation.error}`);
     process.exit(1);
   }
 
