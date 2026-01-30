@@ -6,8 +6,8 @@
   "types": "dist/index.d.ts",
   "type": "module",
   "bin": {
-    "opencode-kimi": "./bin/cli.js",
-    "kimi-rotator": "./bin/cli.js"
+    "opencode-kimi": "bin/cli.js",
+    "kimi-rotator": "bin/cli.js"
   },
   "scripts": {
     "build": "tsc",
