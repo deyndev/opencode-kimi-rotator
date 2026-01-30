@@ -100,7 +100,7 @@ npm install
 npm run install:plugin
 ```
 
-**2. Add the plugin to `~/.config/opencode/opencode.json`:**
+**2. Add the plugin and model to `~/.config/opencode/opencode.json`:**
 
 ```json
 {
@@ -108,13 +108,12 @@ npm run install:plugin
     "file://${HOME}/.config/opencode/plugins/kimi-rotator.js"
   ],
   "provider": {
-    "kimi-for-coding": {
-      "name": "Kimi",
-      "api": "openai",
+    "anthropic": {
+      "name": "Anthropic",
       "models": {
-        "k2p5": {
-          "name": "Kimi K2.5",
-          "limit": { "context": 128000, "output": 4096 }
+        "kimi-for-coding": {
+          "name": "Kimi K2.5 (via Kimi API)",
+          "limit": { "context": 262144, "output": 32768 }
         }
       }
     }
@@ -124,13 +123,26 @@ npm run install:plugin
 
 > **Note**: Replace `${HOME}` with the actual home directory path (e.g., `/Users/username` on macOS, `/home/username` on Linux).
 
-**3. Add your Kimi API keys:**
+**3. (Optional) Configure oh-my-opencode agents in `~/.config/opencode/oh-my-opencode.json`:**
+
+```json
+{
+  "google_auth": false,
+  "agents": {
+    "sisyphus": { "model": "anthropic/kimi-for-coding" },
+    "oracle": { "model": "anthropic/kimi-for-coding" },
+    "librarian": { "model": "anthropic/kimi-for-coding" }
+  }
+}
+```
+
+**4. Add your Kimi API keys:**
 
 ```bash
 opencode-kimi add-key sk-kimi-your-key-here "My Account"
 ```
 
-**4. Verify installation:**
+**5. Verify installation:**
 
 ```bash
 opencode-kimi list-keys
@@ -143,6 +155,7 @@ opencode-kimi list-keys
 - Shows toast notifications for key rotation
 
 </details>
+
 
 
 ---
