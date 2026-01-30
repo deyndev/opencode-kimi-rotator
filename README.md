@@ -485,3 +485,27 @@ npm link
 ## License
 
 MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+## Legal
+
+### Intended Use
+- Personal / internal development only
+- Respect internal quotas and data handling policies
+- Not for production services or bypassing intended limits
+
+### ⚠️ Warning
+
+By using this plugin, you acknowledge:
+
+- **Terms of Service risk** — This approach may violate ToS of AI model providers
+- **Account risk** — Providers may suspend or ban accounts
+- **No guarantees** — APIs may change without notice
+- **Assumption of risk** — You assume all legal, financial, and technical risks
+
+### Disclaimer
+
+Not affiliated with Moonshot AI. This is an independent open-source project.
+
+"Kimi", "Moonshot", and "Moonshot AI" are trademarks of Moonshot AI.
