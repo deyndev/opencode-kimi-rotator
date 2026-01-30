@@ -81,7 +81,7 @@ irm https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/scripts
 4. **Use it:**
 
    ```bash
-   opencode run "Hello" --model=kimi-for-coding/k2p5
+   opencode run "Hello" --model=anthropic/kimi-for-coding
    ```
 
 </details>
@@ -352,19 +352,20 @@ To use Kimi models with Oh My OpenCode agents, update `~/.config/opencode/oh-my-
 ```json
 {
   "google_auth": false,
+  "ralph_loop": {
+    "enabled": true,
+    "default_max_iterations": 100
+  },
   "agents": {
-    "sisyphus": {
-      "model": "kimi-for-coding/k2p5"
-    },
-    "oracle": {
-      "model": "kimi-for-coding/k2p5"
-    },
-    "librarian": {
-      "model": "kimi-for-coding/k2p5"
-    },
-    "frontend-ui-ux-engineer": {
-      "model": "kimi-for-coding/k2p5"
-    }
+    "sisyphus": { "model": "anthropic/kimi-for-coding" },
+    "prometheus": { "model": "anthropic/kimi-for-coding" },
+    "oracle": { "model": "anthropic/kimi-for-coding" },
+    "librarian": { "model": "anthropic/kimi-for-coding" },
+    "explore": { "model": "anthropic/kimi-for-coding" },
+    "frontend-ui-ux-engineer": { "model": "anthropic/kimi-for-coding" },
+    "document-writer": { "model": "anthropic/kimi-for-coding" },
+    "multimodal-looker": { "model": "anthropic/kimi-for-coding" },
+    "atlas": { "model": "anthropic/kimi-for-coding" }
   }
 }
 ```
@@ -426,15 +427,10 @@ Configure agent models in `oh-my-opencode.json`:
 {
   "google_auth": false,
   "agents": {
-    "sisyphus": {
-      "model": "kimi-for-coding/k2p5"
-    },
-    "oracle": {
-      "model": "kimi-for-coding/k2p5"
-    },
-    "librarian": {
-      "model": "kimi-for-coding/k2p5"
-    }
+    "sisyphus": { "model": "anthropic/kimi-for-coding" },
+    "oracle": { "model": "anthropic/kimi-for-coding" },
+    "librarian": { "model": "anthropic/kimi-for-coding" },
+    "atlas": { "model": "anthropic/kimi-for-coding" }
   }
 }
 ```
