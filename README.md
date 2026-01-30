@@ -486,16 +486,16 @@ npm link
 
 MIT License. See [LICENSE](LICENSE) for details.
 
----
-
-## Legal
+<details>
+<summary><b>Legal</b></summary>
 
 ### Intended Use
+
 - Personal / internal development only
 - Respect internal quotas and data handling policies
 - Not for production services or bypassing intended limits
 
-### ⚠️ Warning
+### Warning
 
 By using this plugin, you acknowledge:
 
@@ -506,6 +506,7 @@ By using this plugin, you acknowledge:
 
 ### Disclaimer
 
-Not affiliated with Moonshot AI. This is an independent open-source project.
+- Not affiliated with Moonshot AI. This is an independent open-source project.
+- "Kimi", "Moonshot", and "Moonshot AI" are trademarks of Moonshot AI.
 
-"Kimi", "Moonshot", and "Moonshot AI" are trademarks of Moonshot AI.
+</details>
