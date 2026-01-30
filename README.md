@@ -1,8 +1,7 @@
 # Kimi API Key Rotator for OpenCode
 
 [![npm version](https://img.shields.io/npm/v/opencode-kimi-rotator.svg)](https://www.npmjs.com/package/opencode-kimi-rotator)
-[![npm beta](https://img.shields.io/npm/v/opencode-kimi-rotator/beta.svg?label=beta)](https://www.npmjs.com/package/opencode-kimi-rotator)
-[![npm downloads](https://img.shields.io/npm/dw/opencode-kimi-rotator.svg)](https://www.npmjs.com/package/opencode-kimi-rotator)
+[![npm downloads](https://img.shields.io/npm/dm/opencode-kimi-rotator.svg)](https://www.npmjs.com/package/opencode-kimi-rotator)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 Automatically rotate between multiple Kimi API keys to handle rate limits and distribute load across accounts.
