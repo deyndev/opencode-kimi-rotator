@@ -102,10 +102,12 @@ npm run install:plugin
 
 **2. Add the plugin and model to `~/.config/opencode/opencode.json`:**
 
+Add the plugin to your existing config. The plugin path must use the full absolute path:
+
 ```json
 {
   "plugin": [
-    "file://${HOME}/.config/opencode/plugins/kimi-rotator.js"
+    "file:///Users/YOUR_USERNAME/.config/opencode/plugins/kimi-rotator.js"
   ],
   "provider": {
     "anthropic": {
@@ -121,20 +123,36 @@ npm run install:plugin
 }
 ```
 
-> **Note**: Replace `${HOME}` with the actual home directory path (e.g., `/Users/username` on macOS, `/home/username` on Linux).
+> **Important**: Replace `YOUR_USERNAME` with your actual username. Example paths:
+> - macOS: `file:///Users/john/.config/opencode/plugins/kimi-rotator.js`
+> - Linux: `file:///home/john/.config/opencode/plugins/kimi-rotator.js`
 
-**3. (Optional) Configure oh-my-opencode agents in `~/.config/opencode/oh-my-opencode.json`:**
+**3. Configure oh-my-opencode agents in `~/.config/opencode/oh-my-opencode.json`:**
+
+You must configure **ALL agents** you want to use with Kimi:
 
 ```json
 {
   "google_auth": false,
+  "ralph_loop": {
+    "enabled": true,
+    "default_max_iterations": 100
+  },
   "agents": {
     "sisyphus": { "model": "anthropic/kimi-for-coding" },
+    "prometheus": { "model": "anthropic/kimi-for-coding" },
     "oracle": { "model": "anthropic/kimi-for-coding" },
-    "librarian": { "model": "anthropic/kimi-for-coding" }
+    "librarian": { "model": "anthropic/kimi-for-coding" },
+    "explore": { "model": "anthropic/kimi-for-coding" },
+    "frontend-ui-ux-engineer": { "model": "anthropic/kimi-for-coding" },
+    "document-writer": { "model": "anthropic/kimi-for-coding" },
+    "multimodal-looker": { "model": "anthropic/kimi-for-coding" },
+    "atlas": { "model": "anthropic/kimi-for-coding" }
   }
 }
 ```
+
+> **Note**: If you get "model is not valid" errors, make sure the agent is configured in oh-my-opencode.json.
 
 **4. Add your Kimi API keys:**
 
@@ -157,50 +175,44 @@ opencode-kimi list-keys
 </details>
 
 
-
 ---
 
 ## Models
 
-### Model Reference
+### Available Model
 
-| Model | Context | Output | Notes |
-|-------|---------|--------|-------|
-| `k2p5` | 128,000 | 4,096 | Kimi K2.5 — General purpose coding model |
-| `k2p5-long` | 256,000 | 8,192 | Kimi K2.5 Long Context — Extended context window |
+The Kimi Coding API provides a single flagship model:
+
+| Model ID | Name | Context | Output |
+|----------|------|---------|--------|
+| `kimi-for-coding` | Kimi K2.5 | 262,144 | 32,768 |
+
+Use it as: `anthropic/kimi-for-coding`
+
 
 <details>
-<summary><b>Full models configuration (copy-paste ready)</b></summary>
+<summary><b>Full configuration (copy-paste ready)</b></summary>
 
 Add this to your `~/.config/opencode/opencode.json`:
 
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
+  "plugin": [
+    "file:///Users/YOUR_USERNAME/.config/opencode/plugins/kimi-rotator.js"
+  ],
   "provider": {
-    "kimi-for-coding": {
-      "name": "Kimi",
-      "api": "openai",
+    "anthropic": {
+      "name": "Anthropic",
       "models": {
-        "k2p5": {
-          "name": "Kimi K2.5",
+        "kimi-for-coding": {
+          "name": "Kimi K2.5 (via Kimi API)",
           "limit": {
-            "context": 128000,
-            "output": 4096
+            "context": 262144,
+            "output": 32768
           },
           "modalities": {
-            "input": ["text"],
-            "output": ["text"]
-          }
-        },
-        "k2p5-long": {
-          "name": "Kimi K2.5 Long Context",
-          "limit": {
-            "context": 256000,
-            "output": 8192
-          },
-          "modalities": {
-            "input": ["text"],
+            "input": ["text", "image", "video"],
             "output": ["text"]
           }
         }
