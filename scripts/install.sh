@@ -14,11 +14,9 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO_URL="https://github.com/deyndev/opencode-kimi-rotator.git"
+PLUGIN_NAME="opencode-kimi-rotator"
 CONFIG_DIR="${HOME}/.config/opencode"
-PLUGINS_DIR="${CONFIG_DIR}/plugins"
 CONFIG_FILE="${CONFIG_DIR}/opencode.json"
-TEMP_DIR=$(mktemp -d)
 
 # Helper functions
 print_info() {
@@ -36,14 +34,6 @@ print_warning() {
 print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
-
-# Cleanup on exit
-cleanup() {
-    if [ -d "$TEMP_DIR" ]; then
-        rm -rf "$TEMP_DIR"
-    fi
-}
-trap cleanup EXIT
 
 # Check if Node.js is installed
 check_node() {
@@ -74,25 +64,31 @@ check_npm() {
 # Create config directories
 ensure_dirs() {
     mkdir -p "$CONFIG_DIR"
-    mkdir -p "$PLUGINS_DIR"
     print_success "Config directories ready"
 }
 
-# Clone, build, and install plugin
+# Install plugin from npm
 install_plugin() {
-    print_info "Downloading and building kimi-rotator plugin..."
+    print_info "Installing ${PLUGIN_NAME} from npm..."
     
-    cd "$TEMP_DIR"
-    git clone --depth 1 "$REPO_URL" kimi-rotator > /dev/null 2>&1
-    cd kimi-rotator
+    # Check if already installed
+    if npm list -g "$PLUGIN_NAME" > /dev/null 2>&1; then
+        print_warning "Plugin already installed. Updating to latest version..."
+        npm update -g "$PLUGIN_NAME"
+    else
+        npm install -g "${PLUGIN_NAME}@latest"
+    fi
     
-    npm install > /dev/null 2>&1
-    npm run build > /dev/null 2>&1
+    print_success "Plugin installed globally"
     
-    # Copy compiled plugin to plugins directory
-    cp dist/plugin.js "$PLUGINS_DIR/kimi-rotator.js"
-    
-    print_success "Plugin installed to ${PLUGINS_DIR}/kimi-rotator.js"
+    # Verify CLI is available
+    if command -v opencode-kimi > /dev/null 2>&1; then
+        print_success "CLI command 'opencode-kimi' is available"
+    else
+        print_warning "CLI command 'opencode-kimi' not found in PATH"
+        print_info "You may need to restart your terminal or add npm global bin to your PATH"
+        print_info "Run: export PATH=\"\$PATH:\$(npm bin -g)\""
+    fi
 }
 
 # Backup existing config
@@ -108,49 +104,64 @@ backup_config() {
 update_config() {
     print_info "Updating OpenCode configuration..."
     
-    # Check if config file exists and has content
-    if [ -f "$CONFIG_FILE" ] && [ -s "$CONFIG_FILE" ]; then
-        # Config exists - check if anthropic provider with kimi-for-coding exists
-        if grep -q '"kimi-for-coding"' "$CONFIG_FILE"; then
-            print_success "kimi-for-coding model already configured"
-        else
-            print_warning "Please manually add the kimi-for-coding model to your anthropic provider:"
-            echo ""
-            cat << 'EOF'
-Add this to your opencode.json under "provider" -> "anthropic" -> "models":
-
-    "kimi-for-coding": {
-      "name": "Kimi K2.5 (via Kimi API)",
-      "limit": {
-        "context": 262144,
-        "output": 32768
-      }
-    }
-EOF
-            echo ""
-        fi
-    else
-        # Create new config with minimal setup
-        print_info "Creating new OpenCode configuration..."
-        cat > "$CONFIG_FILE" << 'EOF'
-{
+    # Default config with plugin and provider
+    local default_config='{
   "$schema": "https://opencode.ai/config.json",
+  "plugin": ["opencode-kimi-rotator@latest"],
   "provider": {
-    "anthropic": {
-      "name": "Anthropic",
+    "kimi-for-coding": {
+      "name": "Kimi",
+      "api": "openai",
       "models": {
-        "kimi-for-coding": {
-          "name": "Kimi K2.5 (via Kimi API)",
+        "k2p5": {
+          "name": "Kimi K2.5",
           "limit": {
-            "context": 262144,
-            "output": 32768
+            "context": 128000,
+            "output": 4096
+          },
+          "modalities": {
+            "input": ["text"],
+            "output": ["text"]
+          }
+        },
+        "k2p5-long": {
+          "name": "Kimi K2.5 Long Context",
+          "limit": {
+            "context": 256000,
+            "output": 8192
+          },
+          "modalities": {
+            "input": ["text"],
+            "output": ["text"]
           }
         }
       }
     }
   }
-}
-EOF
+}'
+
+    if [ -f "$CONFIG_FILE" ] && [ -s "$CONFIG_FILE" ]; then
+        # Config exists - check if plugin is already configured
+        if grep -q "opencode-kimi-rotator" "$CONFIG_FILE"; then
+            print_success "Plugin already configured in opencode.json"
+        else
+            print_warning "Existing config found. Please manually add the plugin:"
+            echo ''
+            echo '"plugin": ["opencode-kimi-rotator@latest"]'
+            echo ''
+        fi
+        
+        # Check if kimi-for-coding provider exists
+        if grep -q "kimi-for-coding" "$CONFIG_FILE"; then
+            print_success "kimi-for-coding provider already configured"
+        else
+            print_warning "Please manually add the Kimi provider configuration."
+            print_info "See: https://github.com/deyndev/opencode-kimi-rotator#models"
+        fi
+    else
+        # Create new config
+        print_info "Creating new OpenCode configuration..."
+        echo "$default_config" > "$CONFIG_FILE"
         print_success "Configuration created at: ${CONFIG_FILE}"
     fi
 }
@@ -165,13 +176,13 @@ print_next_steps() {
     echo "Next steps:"
     echo ""
     echo "1. Add your Kimi API key(s):"
-    echo -e "   ${BLUE}opencode kimi add-key sk-kimi-your-key-here \"My Account\"${NC}"
+    echo -e "   ${BLUE}opencode-kimi add-key sk-kimi-your-key-here \"My Account\"${NC}"
     echo ""
     echo "2. Verify installation:"
-    echo -e "   ${BLUE}opencode kimi list-keys${NC}"
+    echo -e "   ${BLUE}opencode-kimi list-keys${NC}"
     echo ""
     echo "3. Test with OpenCode:"
-    echo -e "   ${BLUE}opencode run \"Hello\" --model=anthropic/kimi-for-coding${NC}"
+    echo -e "   ${BLUE}opencode run \"Hello\" --model=kimi-for-coding/k2p5${NC}"
     echo ""
     echo "The plugin will:"
     echo "  • Set ANTHROPIC_BASE_URL to Kimi's API endpoint"
@@ -181,6 +192,12 @@ print_next_steps() {
     echo "For more information:"
     echo -e "   ${BLUE}https://github.com/deyndev/opencode-kimi-rotator${NC}"
     echo ""
+    
+    # Warn about PATH if needed
+    if ! command -v opencode-kimi > /dev/null 2>&1; then
+        echo -e "${YELLOW}NOTE: You may need to restart your terminal for 'opencode-kimi' to be available${NC}"
+        echo ""
+    fi
 }
 
 # Main installation flow

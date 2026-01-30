@@ -1,15 +1,13 @@
 # OpenCode Kimi Rotator - Automatic Installation Script (PowerShell)
-# Usage: irm https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/install.ps1 | iex
+# Usage: irm https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/scripts/install.ps1 | iex
 #
 
 $ErrorActionPreference = "Stop"
 
-# Configuration
 $PLUGIN_NAME = "opencode-kimi-rotator"
 $CONFIG_DIR = Join-Path $env:USERPROFILE ".config\opencode"
 $CONFIG_FILE = Join-Path $CONFIG_DIR "opencode.json"
 
-# Helper functions
 function Print-Info {
     param([string]$Message)
     Write-Host "[INFO] $Message" -ForegroundColor Cyan
@@ -30,7 +28,6 @@ function Print-Error {
     Write-Host "[ERROR] $Message" -ForegroundColor Red
 }
 
-# Check if Node.js is installed
 function Check-Node {
     try {
         $nodeVersion = node -v
@@ -47,7 +44,6 @@ function Check-Node {
     }
 }
 
-# Check if npm is installed
 function Check-Npm {
     try {
         $npmVersion = npm -v
@@ -58,22 +54,29 @@ function Check-Npm {
     }
 }
 
-# Install the plugin globally
 function Install-Plugin {
-    Print-Info "Installing ${PLUGIN_NAME}..."
+    Print-Info "Installing ${PLUGIN_NAME} from npm..."
     
     $installed = npm list -g $PLUGIN_NAME 2>$null
     if ($LASTEXITCODE -eq 0) {
-        Print-Warning "Plugin already installed. Updating..."
+        Print-Warning "Plugin already installed. Updating to latest version..."
         npm update -g $PLUGIN_NAME
     } else {
         npm install -g "${PLUGIN_NAME}@latest"
     }
     
-    Print-Success "Plugin installed successfully"
+    Print-Success "Plugin installed globally"
+    
+    # Verify CLI is available
+    try {
+        $null = Get-Command opencode-kimi -ErrorAction Stop
+        Print-Success "CLI command 'opencode-kimi' is available"
+    } catch {
+        Print-Warning "CLI command 'opencode-kimi' not found in PATH"
+        Print-Info "You may need to restart your PowerShell session or add npm global bin to your PATH"
+    }
 }
 
-# Create config directory if it doesn't exist
 function Ensure-ConfigDir {
     if (-not (Test-Path $CONFIG_DIR)) {
         Print-Info "Creating config directory: $CONFIG_DIR"
@@ -81,7 +84,6 @@ function Ensure-ConfigDir {
     }
 }
 
-# Backup existing config
 function Backup-Config {
     if (Test-Path $CONFIG_FILE) {
         $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
@@ -91,7 +93,6 @@ function Backup-Config {
     }
 }
 
-# Update or create OpenCode config
 function Update-Config {
     Print-Info "Updating OpenCode configuration..."
     
@@ -101,6 +102,8 @@ function Update-Config {
   "plugin": ["opencode-kimi-rotator@latest"],
   "provider": {
     "kimi-for-coding": {
+      "name": "Kimi",
+      "api": "openai",
       "models": {
         "k2p5": {
           "name": "Kimi K2.5",
@@ -131,19 +134,21 @@ function Update-Config {
 '@
 
     if (Test-Path $CONFIG_FILE) {
-        Print-Info "Existing config found. Merging..."
+        Print-Info "Existing config found. Checking configuration..."
         $configContent = Get-Content $CONFIG_FILE -Raw
         
         if ($configContent -match "opencode-kimi-rotator") {
-            Print-Warning "Plugin already in config. Skipping plugin addition."
+            Print-Success "Plugin already configured in opencode.json"
         } else {
-            Print-Info "Please manually add the plugin to your config:"
+            Print-Warning "Please manually add the plugin to your config:"
             Write-Host '"plugin": ["opencode-kimi-rotator@latest"]'
         }
         
-        if ($configContent -notmatch "kimi-for-coding") {
-            Print-Info "Please manually add the Kimi provider configuration."
-            Write-Host "See: https://github.com/deyndev/opencode-kimi-rotator#models"
+        if ($configContent -match "kimi-for-coding") {
+            Print-Success "kimi-for-coding provider already configured"
+        } else {
+            Print-Warning "Please manually add the Kimi provider configuration."
+            Print-Info "See: https://github.com/deyndev/opencode-kimi-rotator#models"
         }
     } else {
         Print-Info "Creating new OpenCode configuration..."
@@ -152,7 +157,6 @@ function Update-Config {
     }
 }
 
-# Print next steps
 function Print-NextSteps {
     Write-Host ""
     Write-Host "========================================" -ForegroundColor Green
@@ -162,20 +166,32 @@ function Print-NextSteps {
     Write-Host "Next steps:"
     Write-Host ""
     Write-Host "1. Add your Kimi API key(s):"
-    Write-Host "   opencode kimi add-key sk-kimi-your-key-here \"My Account\"" -ForegroundColor Cyan
+    Write-Host "   opencode-kimi add-key sk-kimi-your-key-here \"My Account\"" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "2. Verify installation:"
-    Write-Host "   opencode kimi list-keys" -ForegroundColor Cyan
+    Write-Host "   opencode-kimi list-keys" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "3. Test with OpenCode:"
     Write-Host "   opencode run \"Hello\" --model=kimi-for-coding/k2p5" -ForegroundColor Cyan
     Write-Host ""
+    Write-Host "The plugin will:"
+    Write-Host "  • Set ANTHROPIC_BASE_URL to Kimi's API endpoint"
+    Write-Host "  • Rotate API keys on each request"
+    Write-Host "  • Show toast notifications for key rotation"
+    Write-Host ""
     Write-Host "For more information:"
     Write-Host "   https://github.com/deyndev/opencode-kimi-rotator" -ForegroundColor Cyan
     Write-Host ""
+    
+    # Check if CLI is available
+    try {
+        $null = Get-Command opencode-kimi -ErrorAction Stop
+    } catch {
+        Write-Host "NOTE: You may need to restart your PowerShell session for 'opencode-kimi' to be available" -ForegroundColor Yellow
+        Write-Host ""
+    }
 }
 
-# Main installation flow
 function Main {
     Write-Host "========================================" -ForegroundColor Green
     Write-Host "  OpenCode Kimi Rotator Installer" -ForegroundColor Green
@@ -191,5 +207,4 @@ function Main {
     Print-NextSteps
 }
 
-# Run main function
 Main

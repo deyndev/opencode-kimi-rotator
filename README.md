@@ -32,6 +32,12 @@ Automatically rotate between multiple Kimi API keys to handle rate limits and di
 curl -fsSL https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/scripts/install.sh | bash
 ```
 
+Or for Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/scripts/install.ps1 | iex
+```
+
 **Option B: Manual setup**
 
 1. **Clone and build the plugin**:
@@ -68,14 +74,14 @@ curl -fsSL https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/
 3. **Add your API keys**:
 
    ```bash
-   opencode kimi add-key sk-kimi-your-key-here "My Account 1"
-   opencode kimi add-key sk-kimi-another-key "My Account 2"
+   opencode-kimi add-key sk-kimi-your-key-here "My Account 1"
+   opencode-kimi add-key sk-kimi-another-key "My Account 2"
    ```
 
 4. **Use it:**
 
    ```bash
-   opencode run "Hello" --model=anthropic/kimi-for-coding
+   opencode run "Hello" --model=kimi-for-coding/k2p5
    ```
 
 </details>
@@ -92,7 +98,7 @@ curl -fsSL https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/
 
 2. Add your Kimi API keys:
    ```bash
-   opencode kimi add-key sk-kimi-your-key-here "My Account"
+   opencode-kimi add-key sk-kimi-your-key-here "My Account"
    ```
 
 3. The plugin automatically:
@@ -103,7 +109,7 @@ curl -fsSL https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/
 ### Verification
 
 ```bash
-opencode run "Hello" --model=anthropic/kimi-for-coding
+opencode run "Hello" --model=kimi-for-coding/k2p5
 ```
 
 </details>
@@ -170,14 +176,14 @@ Add this to your `~/.config/opencode/opencode.json`:
 
 ```bash
 # Add a key with optional name
-opencode kimi add-key sk-kimi-your-key-here "My Account 1"
-opencode kimi add-key sk-kimi-another-key "My Account 2"
+opencode-kimi add-key sk-kimi-your-key-here "My Account 1"
+opencode-kimi add-key sk-kimi-another-key "My Account 2"
 ```
 
 ### List All Keys
 
 ```bash
-opencode kimi list-keys
+opencode-kimi list-keys
 ```
 
 Output:
@@ -200,26 +206,26 @@ Kimi API Keys (2 total, strategy: health-based):
 ### Remove a Key
 
 ```bash
-opencode kimi remove-key 1
+opencode-kimi remove-key 1
 ```
 
 ### Manually Rotate
 
 ```bash
-opencode kimi rotate
+opencode-kimi rotate
 ```
 
 ### Change Rotation Strategy
 
 ```bash
 # Round-robin: cycle through keys sequentially
-opencode kimi set-strategy round-robin
+opencode-kimi set-strategy round-robin
 
 # Health-based: smart selection based on health scores (default)
-opencode kimi set-strategy health-based
+opencode-kimi set-strategy health-based
 
 # Sticky: stay on one key until rate limited
-opencode kimi set-strategy sticky
+opencode-kimi set-strategy sticky
 ```
 
 ---
@@ -315,7 +321,7 @@ To use Kimi models with Oh My OpenCode agents, update `~/.config/opencode/oh-my-
 
 Run:
 ```bash
-opencode kimi add-key your-api-key
+opencode-kimi add-key your-api-key
 ```
 
 ### All keys rate limited
@@ -323,7 +329,7 @@ opencode kimi add-key your-api-key
 The plugin will wait for the soonest available key. You can:
 1. Wait for rate limits to reset
 2. Add more API keys
-3. Check status with `opencode kimi list-keys`
+3. Check status with `opencode-kimi list-keys`
 
 ### Plugin not loading
 
@@ -336,7 +342,7 @@ The plugin will wait for the soonest available key. You can:
 If you need to start fresh:
 ```bash
 rm ~/.config/opencode/kimi-accounts.json
-opencode kimi add-key your-new-api-key
+opencode-kimi add-key your-new-api-key
 ```
 
 ---
@@ -384,13 +390,13 @@ Configure agent models in `oh-my-opencode.json`:
 For automated setup, you can use this one-liner:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/scripts/install.sh | bash
 ```
 
 Or for Windows (PowerShell):
 
 ```powershell
-irm https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/scripts/install.ps1 | iex
 ```
 
 ---
