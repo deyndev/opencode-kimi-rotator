@@ -153,17 +153,18 @@ export class KimiStorage {
   }
 
   private async acquireLock(): Promise<() => Promise<void>> {
+    await fs.mkdir(path.dirname(this.accountsFilePath), { recursive: true });
+    
     try {
-      const release = await lockfile.lock(this.accountsFilePath, this.lockOptions);
-      return release;
+      await fs.access(this.accountsFilePath);
     } catch {
-      await fs.mkdir(path.dirname(this.accountsFilePath), { recursive: true });
       await fs.writeFile(
-        this.accountsFilePath, 
+        this.accountsFilePath,
         JSON.stringify({ ...DEFAULT_CONFIG, accounts: [] })
       );
-      const release = await lockfile.lock(this.accountsFilePath, this.lockOptions);
-      return release;
     }
+    
+    const release = await lockfile.lock(this.accountsFilePath, this.lockOptions);
+    return release;
   }
 }
