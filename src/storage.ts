@@ -30,7 +30,7 @@ export class KimiStorage {
 
   async init(): Promise<void> {
     await fs.mkdir(this.configDir, { recursive: true });
-    
+
     const gitignorePath = path.join(this.configDir, '.gitignore');
     try {
       await fs.access(gitignorePath);
@@ -82,7 +82,7 @@ export class KimiStorage {
 
   async addAccount(key: string, name?: string): Promise<KimiAccount> {
     const config = await this.loadConfig();
-    
+
     const existingIndex = config.accounts.findIndex(a => a.key === key);
     if (existingIndex !== -1) {
       throw new Error('This API key already exists');
@@ -99,19 +99,19 @@ export class KimiStorage {
 
     config.accounts.push(newAccount);
     await this.saveConfig(config);
-    
+
     return newAccount;
   }
 
   async removeAccount(index: number): Promise<void> {
     const config = await this.loadConfig();
-    
+
     if (index < 0 || index >= config.accounts.length) {
       throw new Error(`Invalid account index: ${index}`);
     }
 
     config.accounts.splice(index, 1);
-    
+
     if (config.activeIndex >= config.accounts.length) {
       config.activeIndex = Math.max(0, config.accounts.length - 1);
     }
@@ -134,7 +134,7 @@ export class KimiStorage {
 
   async setActiveIndex(index: number): Promise<void> {
     const config = await this.loadConfig();
-    
+
     if (index < 0 || index >= config.accounts.length) {
       throw new Error(`Invalid account index: ${index}`);
     }
@@ -145,7 +145,7 @@ export class KimiStorage {
 
   async updateAccount(index: number, updates: Partial<KimiAccount>): Promise<void> {
     const config = await this.loadConfig();
-    
+
     if (index < 0 || index >= config.accounts.length) {
       throw new Error(`Invalid account index: ${index}`);
     }
@@ -156,9 +156,7 @@ export class KimiStorage {
 
   private async acquireLock(): Promise<() => Promise<void>> {
     await fs.mkdir(path.dirname(this.accountsFilePath), { recursive: true });
-    
-    const lockFilePath = `${this.accountsFilePath}.lock`;
-    
+
     try {
       await fs.access(this.accountsFilePath);
     } catch {
@@ -168,8 +166,8 @@ export class KimiStorage {
         { flag: 'wx' }
       );
     }
-    
-    const release = await lockfile.lock(lockFilePath, this.lockOptions);
+
+    const release = await lockfile.lock(this.accountsFilePath, this.lockOptions);
     return release;
   }
 }

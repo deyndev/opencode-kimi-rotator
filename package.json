@@ -11,10 +11,11 @@
   },
   "scripts": {
     "build": "tsc",
+    "bundle": "esbuild src/plugin.ts --bundle --platform=node --format=esm --outfile=dist/plugin.bundle.js --external:@opencode-ai/plugin --packages=bundle",
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "install:plugin": "mkdir -p ~/.config/opencode/plugins && cp dist/plugin.js ~/.config/opencode/plugins/kimi-rotator.js",
+    "install:plugin": "npm run bundle && mkdir -p ~/.config/opencode/plugins && cp dist/plugin.bundle.js ~/.config/opencode/plugins/kimi-rotator.js",
     "prepublishOnly": "npm run build"
   },
   "keywords": [
@@ -46,6 +47,7 @@
   "devDependencies": {
     "@types/node": "^20.10.0",
     "@types/proper-lockfile": "^4.1.4",
+    "esbuild": "^0.27.2",
     "typescript": "^5.3.0"
   },
   "files": [

@@ -50,37 +50,37 @@ function validateApiKey(key) {
   if (!key || typeof key !== 'string') {
     return { valid: false, error: 'API key is required' };
   }
-  
+
   if (!key.startsWith('sk-kimi-')) {
     return { valid: false, error: 'API key must start with "sk-kimi-"' };
   }
-  
+
   if (key.length < API_KEY_MIN_LENGTH) {
     return { valid: false, error: `API key must be at least ${API_KEY_MIN_LENGTH} characters` };
   }
-  
+
   if (key.length > API_KEY_MAX_LENGTH) {
     return { valid: false, error: `API key must not exceed ${API_KEY_MAX_LENGTH} characters` };
   }
-  
+
   if (!API_KEY_PATTERN.test(key)) {
     return { valid: false, error: 'API key contains invalid characters' };
   }
-  
+
   return { valid: true };
 }
 
 function sanitizeAccountName(name) {
   if (!name) return null;
-  
+
   const trimmed = name.trim();
-  
+
   if (trimmed.length === 0) return null;
-  
+
   if (trimmed.length > MAX_ACCOUNT_NAME_LENGTH) {
     return trimmed.substring(0, MAX_ACCOUNT_NAME_LENGTH);
   }
-  
+
   return trimmed.replace(/[<>\"']/g, '');
 }
 
@@ -161,7 +161,7 @@ async function removeKey(manager, args) {
   const index = parseInt(args[0], 10);
 
   if (isNaN(index)) {
-    console.error('Usage: opencode kimi remove-key <index>');
+    console.error('Usage: opencode-kimi remove-key <index>');
     process.exit(1);
   }
 
@@ -192,7 +192,7 @@ async function useKey(manager, args) {
   const index = parseInt(args[0], 10);
 
   if (isNaN(index)) {
-    console.error('Usage: opencode kimi use-key <index>');
+    console.error('Usage: opencode-kimi use-key <index>');
     process.exit(1);
   }
 
@@ -208,9 +208,9 @@ async function useKey(manager, args) {
 
 async function setStrategy(manager, args) {
   const strategy = args[0];
-  
+
   if (!['round-robin', 'health-based', 'sticky'].includes(strategy)) {
-    console.error('Usage: opencode kimi set-strategy <round-robin|health-based|sticky>');
+    console.error('Usage: opencode-kimi set-strategy <round-robin|health-based|sticky>');
     console.error('');
     console.error('Strategies:');
     console.error('  round-robin  - Cycle through keys sequentially');
