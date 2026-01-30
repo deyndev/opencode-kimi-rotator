@@ -89,30 +89,61 @@ irm https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/scripts
 <details>
 <summary><b>For LLM Agents</b></summary>
 
-### Step-by-Step Instructions
+### Complete Installation Steps
 
-1. Run the install script:
-   ```bash
-   curl -fsSL https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/scripts/install.sh | bash
-   ```
-
-2. Add your Kimi API keys:
-   ```bash
-   opencode-kimi add-key sk-kimi-your-key-here "My Account"
-   ```
-
-3. The plugin automatically:
-   - Sets `ANTHROPIC_BASE_URL` to Kimi's API endpoint
-   - Rotates API keys on each request
-   - Routes requests through the Anthropic SDK to Kimi
-
-### Verification
+**1. Clone and build the plugin:**
 
 ```bash
-opencode run "Hello" --model=kimi-for-coding/k2p5
+git clone https://github.com/deyndev/opencode-kimi-rotator.git
+cd opencode-kimi-rotator
+npm install
+npm run install:plugin
 ```
 
+**2. Add the plugin to `~/.config/opencode/opencode.json`:**
+
+```json
+{
+  "plugin": [
+    "file://${HOME}/.config/opencode/plugins/kimi-rotator.js"
+  ],
+  "provider": {
+    "kimi-for-coding": {
+      "name": "Kimi",
+      "api": "openai",
+      "models": {
+        "k2p5": {
+          "name": "Kimi K2.5",
+          "limit": { "context": 128000, "output": 4096 }
+        }
+      }
+    }
+  }
+}
+```
+
+> **Note**: Replace `${HOME}` with the actual home directory path (e.g., `/Users/username` on macOS, `/home/username` on Linux).
+
+**3. Add your Kimi API keys:**
+
+```bash
+opencode-kimi add-key sk-kimi-your-key-here "My Account"
+```
+
+**4. Verify installation:**
+
+```bash
+opencode-kimi list-keys
+```
+
+### What the plugin does automatically:
+- Sets `ANTHROPIC_BASE_URL` to Kimi's API endpoint
+- Intercepts fetch requests to `api.kimi.com`
+- Rotates API keys based on health scores
+- Shows toast notifications for key rotation
+
 </details>
+
 
 ---
 
