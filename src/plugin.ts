@@ -396,7 +396,6 @@ let openCodeClient: {
 } | null = null;
 
 let toastQueue: Array<{ message: string; variant: 'info' | 'warning' | 'error' }> = [];
-let isReady = false;
 
 async function showToast(message: string, variant: 'info' | 'warning' | 'error' = 'info') {
   if (!openCodeClient?.tui?.showToast) {
@@ -464,7 +463,6 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
 
   const showInitialToast = async () => {
     await new Promise(resolve => setTimeout(resolve, 500));
-    isReady = true;
     await flushToastQueue();
     await showToast("🎉 Kimi Rotator Plugin loaded!", 'info');
   };
@@ -502,7 +500,6 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
       }
       openCodeClient = null;
       accountManager = null;
-      isReady = false;
       toastQueue = [];
     },
   };

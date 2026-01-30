@@ -11,7 +11,6 @@ interface RotationResult {
 
 export class KimiAccountManager {
   private storage: KimiStorage;
-  private healthScoreDecay = 0.95;
   private minHealthScore = 30;
   private stickyBonus = 50;
 
