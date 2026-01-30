@@ -59,9 +59,21 @@ irm https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/scripts
          "models": {
            "kimi-for-coding": {
              "name": "Kimi K2.5 (via Kimi API)",
+             "attachment": true,
              "limit": {
                "context": 262144,
                "output": 32768
+             },
+             "modalities": {
+               "input": [
+                 "text",
+                 "image",
+                 "video",
+                 "pdf"
+               ],
+               "output": [
+                 "text"
+               ]
              }
            }
          }
@@ -114,7 +126,22 @@ Add the plugin to your existing config. The plugin path must use the full absolu
       "models": {
         "kimi-for-coding": {
           "name": "Kimi K2.5 (via Kimi API)",
-          "limit": { "context": 262144, "output": 32768 }
+          "attachment": true,
+          "limit": {
+            "context": 262144,
+            "output": 32768
+          },
+          "modalities": {
+            "input": [
+              "text",
+              "image",
+              "video",
+              "pdf"
+            ],
+            "output": [
+              "text"
+            ]
+          }
         }
       }
     }
@@ -206,13 +233,21 @@ Add this to your `~/.config/opencode/opencode.json`:
       "models": {
         "kimi-for-coding": {
           "name": "Kimi K2.5 (via Kimi API)",
+          "attachment": true,
           "limit": {
             "context": 262144,
             "output": 32768
           },
           "modalities": {
-            "input": ["text", "image", "video"],
-            "output": ["text"]
+            "input": [
+              "text",
+              "image",
+              "video",
+              "pdf"
+            ],
+            "output": [
+              "text"
+            ]
           }
         }
       }
