@@ -26,39 +26,56 @@ Automatically rotate between multiple Kimi API keys to handle rate limits and di
 <details open>
 <summary><b>For Humans</b></summary>
 
-**Option A: Let an LLM do it (Recommended)**
+**Option A: Automatic (Recommended)**
 
-Paste this into any LLM agent (Claude Code, OpenCode, Cursor, etc.):
-
-```
-Install the opencode-kimi-rotator plugin and add the Kimi model definitions to ~/.config/opencode/opencode.json by following: https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/README.md
+```bash
+curl -fsSL https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/scripts/install.sh | bash
 ```
 
 **Option B: Manual setup**
 
-1. **Add the plugin** to `~/.config/opencode/opencode.json`:
+1. **Clone and build the plugin**:
+
+   ```bash
+   git clone https://github.com/deyndev/opencode-kimi-rotator.git
+   cd opencode-kimi-rotator
+   npm install
+   npm run build
+   npm run install:plugin
+   ```
+
+2. **Add the model to your `~/.config/opencode/opencode.json`**:
 
    ```json
    {
-     "plugin": ["opencode-kimi-rotator@latest"]
+     "provider": {
+       "anthropic": {
+         "name": "Anthropic",
+         "models": {
+           "kimi-for-coding": {
+             "name": "Kimi K2.5 (via Kimi API)",
+             "limit": {
+               "context": 262144,
+               "output": 32768
+             }
+           }
+         }
+       }
+     }
    }
    ```
 
-   > Want bleeding-edge features? Use `opencode-kimi-rotator@beta` instead.
-
-2. **Add your API keys**:
+3. **Add your API keys**:
 
    ```bash
    opencode kimi add-key sk-kimi-your-key-here "My Account 1"
    opencode kimi add-key sk-kimi-another-key "My Account 2"
    ```
 
-3. **Add models** — copy the [full configuration](#models) below
-
 4. **Use it:**
 
    ```bash
-   opencode run "Hello" --model=kimi-for-coding/k2p5
+   opencode run "Hello" --model=anthropic/kimi-for-coding
    ```
 
 </details>
@@ -68,25 +85,25 @@ Install the opencode-kimi-rotator plugin and add the Kimi model definitions to ~
 
 ### Step-by-Step Instructions
 
-1. Edit the OpenCode configuration file at `~/.config/opencode/opencode.json`
-   
-   > **Note**: This path works on all platforms. On Windows, `~` resolves to your user home directory (e.g., `C:\Users\YourName`).
-
-2. Add the plugin to the `plugin` array:
-   ```json
-   {
-     "plugin": ["opencode-kimi-rotator@latest"]
-   }
+1. Run the install script:
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/scripts/install.sh | bash
    ```
 
-3. Add the model definitions from the [Full models configuration](#models) section
+2. Add your Kimi API keys:
+   ```bash
+   opencode kimi add-key sk-kimi-your-key-here "My Account"
+   ```
 
-4. Set `provider` to `"kimi-for-coding"` and choose a model
+3. The plugin automatically:
+   - Sets `ANTHROPIC_BASE_URL` to Kimi's API endpoint
+   - Rotates API keys on each request
+   - Routes requests through the Anthropic SDK to Kimi
 
 ### Verification
 
 ```bash
-opencode run "Hello" --model=kimi-for-coding/k2p5
+opencode run "Hello" --model=anthropic/kimi-for-coding
 ```
 
 </details>
@@ -110,9 +127,10 @@ Add this to your `~/.config/opencode/opencode.json`:
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": ["opencode-kimi-rotator@latest"],
   "provider": {
     "kimi-for-coding": {
+      "name": "Kimi",
+      "api": "openai",
       "models": {
         "k2p5": {
           "name": "Kimi K2.5",

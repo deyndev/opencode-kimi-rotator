@@ -5,14 +5,8 @@ interface OpenCodeAuth {
   key: string;
 }
 
-interface OpenCodePlugin {
-  auth?: {
-    provider: string;
-    loader: (getAuth: () => Promise<OpenCodeAuth | null>, provider: string) => Promise<unknown>;
-  };
-}
-
 let accountManager: KimiAccountManager | null = null;
+let currentAccountIndex: number = 0;
 
 async function getAccountManager(): Promise<KimiAccountManager> {
   if (!accountManager) {
@@ -22,64 +16,63 @@ async function getAccountManager(): Promise<KimiAccountManager> {
   return accountManager;
 }
 
-export async function getAuth(): Promise<OpenCodeAuth | null> {
+async function getAuth(): Promise<OpenCodeAuth | null> {
   const manager = await getAccountManager();
-  const key = await manager.getActiveKey();
+  const result = await manager.getNextAccount();
   
-  if (!key) {
+  if (!result) {
     return null;
   }
   
+  currentAccountIndex = result.index;
+  
   return {
     type: 'api',
-    key,
+    key: result.account.key,
   };
 }
 
-export async function handleRateLimit(retryAfterMs: number): Promise<void> {
+async function handleRateLimit(retryAfterMs: number): Promise<void> {
   const manager = await getAccountManager();
-  const config = await manager.listKeys();
-  
-  if (config.length === 0) return;
-  
-  const activeIndex = config.findIndex((_, idx) => idx === 0);
-  await manager.markAccountRateLimited(activeIndex >= 0 ? activeIndex : 0, retryAfterMs);
+  await manager.markAccountRateLimited(currentAccountIndex, retryAfterMs);
 }
 
-export async function handleSuccess(): Promise<void> {
+async function handleSuccess(): Promise<void> {
   const manager = await getAccountManager();
-  const config = await manager.listKeys();
-  
-  if (config.length === 0) return;
-  
-  const activeIndex = 0;
-  await manager.markAccountSuccess(activeIndex);
+  await manager.markAccountSuccess(currentAccountIndex);
 }
 
-export async function handleFailure(): Promise<void> {
+async function handleFailure(): Promise<void> {
   const manager = await getAccountManager();
-  const config = await manager.listKeys();
-  
-  if (config.length === 0) return;
-  
-  const activeIndex = 0;
-  await manager.markAccountFailure(activeIndex);
+  await manager.markAccountFailure(currentAccountIndex);
 }
 
-const plugin: OpenCodePlugin = {
-  auth: {
-    provider: 'kimi-for-coding',
-    loader: async (getAuth) => {
-      const auth = await getAuth();
-      if (!auth) {
-        throw new Error(
-          'No Kimi API keys configured. Run: opencode kimi add-key <your-api-key>'
-        );
-      }
-      return auth;
+// OpenCode expects a named Plugin export
+export async function KimiRotatorPlugin(input: any) {
+  console.log('🎉 Kimi Rotator Plugin loading!');
+  
+  // Initialize the account manager
+  await getAccountManager();
+  
+  return {
+    event: async ({ event }: { event: any }) => {
+      // Handle events if needed
     },
-  },
-};
+    auth: {
+      provider: 'kimi-for-coding',
+      loader: async (getAuth: () => Promise<OpenCodeAuth | null>) => {
+        const auth = await getAuth();
+        if (!auth) {
+          throw new Error(
+            'No Kimi API keys configured. Run: opencode kimi add-key <your-api-key>'
+          );
+        }
+        return auth;
+      },
+    },
+  };
+}
 
-export default plugin;
+// Also export as default for compatibility
+export default KimiRotatorPlugin;
 export { KimiAccountManager };
