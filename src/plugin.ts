@@ -4,7 +4,6 @@ import * as os from 'os';
 import lockfile from 'proper-lockfile';
 import type { Plugin } from "@opencode-ai/plugin";
 
-// Types
 interface KimiAccount {
   key: string;
   name?: string;
@@ -24,7 +23,6 @@ interface KimiAccountsConfig {
   rotationStrategy: 'round-robin' | 'health-based' | 'sticky';
 }
 
-// Storage
 class KimiStorage {
   private configDir: string;
   private accountsFilePath: string;
@@ -102,25 +100,24 @@ class KimiStorage {
   }
 
   private async acquireLock(): Promise<() => Promise<void>> {
+    await fs.mkdir(path.dirname(this.accountsFilePath), { recursive: true });
+    
     try {
-      const release = await lockfile.lock(this.accountsFilePath, this.lockOptions);
-      return release;
+      await fs.access(this.accountsFilePath);
     } catch {
-      await fs.mkdir(path.dirname(this.accountsFilePath), { recursive: true });
       await fs.writeFile(
         this.accountsFilePath,
         JSON.stringify({ version: 1, accounts: [], activeIndex: 0, rotationStrategy: 'health-based' })
       );
-      const release = await lockfile.lock(this.accountsFilePath, this.lockOptions);
-      return release;
     }
+    
+    const release = await lockfile.lock(this.accountsFilePath, this.lockOptions);
+    return release;
   }
 }
 
-// Account Manager
 class KimiAccountManager {
   private storage: KimiStorage;
-  private healthScoreDecay = 0.95;
   private minHealthScore = 30;
   private stickyBonus = 50;
 
@@ -359,9 +356,9 @@ class KimiAccountManager {
   }
 }
 
-// Plugin
 let accountManager: KimiAccountManager | null = null;
 let currentAccountIndex: number = 0;
+let originalFetch: typeof globalThis.fetch | null = null;
 
 async function getAccountManager(): Promise<KimiAccountManager> {
   if (!accountManager) {
@@ -392,51 +389,59 @@ async function getAuth(): Promise<OpenCodeAuth | null> {
   };
 }
 
-// @ts-nocheck
+let openCodeClient: {
+  tui?: {
+    showToast: (options: { body: { message: string; variant: 'info' | 'warning' | 'error' } }) => Promise<unknown>;
+  };
+} | null = null;
 
-// Store client reference for toast notifications  
-let openCodeClient: any = null;
+let toastQueue: Array<{ message: string; variant: 'info' | 'warning' | 'error' }> = [];
+let isReady = false;
 
-export const KimiRotatorPlugin = async ({ client, directory, $ }: any) => {
-  console.log("🎉 Kimi Rotator Plugin loaded!");
+async function showToast(message: string, variant: 'info' | 'warning' | 'error' = 'info') {
+  if (!openCodeClient?.tui?.showToast) {
+    toastQueue.push({ message, variant });
+    return;
+  }
+  try {
+    await openCodeClient.tui.showToast({ body: { message, variant } });
+  } catch {
+    return;
+  }
+}
 
-  // Store client for toast notifications
+async function flushToastQueue() {
+  if (!openCodeClient?.tui?.showToast) return;
+  while (toastQueue.length > 0) {
+    const toast = toastQueue.shift();
+    if (toast) {
+      try {
+        await openCodeClient.tui.showToast({ body: { message: toast.message, variant: toast.variant } });
+      } catch {
+        return;
+      }
+    }
+  }
+}
+
+export const KimiRotatorPlugin: Plugin = async ({ client }) => {
   openCodeClient = client;
 
-  // Initialize the account manager
   accountManager = await getAccountManager();
 
-  // Get the initial API key and set environment variables
   const result = await accountManager.getNextAccount();
-  const allKeys = await accountManager.listKeys();
-  const totalAccounts = allKeys.length;
 
   if (result) {
     const kimiBaseUrl = 'https://api.kimi.com/coding/v1';
     process.env.ANTHROPIC_BASE_URL = kimiBaseUrl;
     process.env.ANTHROPIC_API_KEY = result.account.key;
-    console.log(`🔑 Set ANTHROPIC_BASE_URL=${kimiBaseUrl}`);
-    console.log(`🔑 Initial key: ${result.account.key.substring(0, 15)}... (${result.index + 1}/${totalAccounts})`);
   }
 
-  // Helper to show toast notifications (like antigravity plugin)
-  const showToast = async (message: string, variant: 'info' | 'warning' | 'error' = 'info') => {
-    if (!openCodeClient?.tui?.showToast) return;
-    try {
-      await openCodeClient.tui.showToast({ body: { message, variant } });
-    } catch {
-      // TUI may not be available
-    }
-  };
-
-  // Intercept global fetch to rotate keys on each Anthropic API request
-  const originalFetch = globalThis.fetch;
-  globalThis.fetch = async (input: any, init?: RequestInit): Promise<Response> => {
+  originalFetch = globalThis.fetch;
+  globalThis.fetch = async (input: string | Request | URL, init?: RequestInit): Promise<Response> => {
     const url = typeof input === 'string' ? input : input.toString();
 
-    // Only intercept Kimi API requests
     if (url.includes('api.kimi.com')) {
-      // Rotate to next key for this request
       const nextAccount = await accountManager!.getNextAccount();
       if (nextAccount) {
         const keyLabel = nextAccount.account.key.substring(0, 18) + '...';
@@ -444,53 +449,65 @@ export const KimiRotatorPlugin = async ({ client, directory, $ }: any) => {
         const allKeysNow = await accountManager!.listKeys();
         const total = allKeysNow.length;
 
-        // Show toast notification (like antigravity: "Using Account 1 (1/3)")
         await showToast(`🔄 Using key: ${keyLabel} (${position}/${total})`, 'info');
 
-        console.log(`🔄 Rotating to key: ${keyLabel} (${position}/${total})`);
-
-        // Clone and update headers with new key
         const headers = new Headers(init?.headers);
         headers.set('x-api-key', nextAccount.account.key);
-        headers.delete('Authorization'); // Anthropic SDK uses x-api-key
+        headers.delete('Authorization');
 
-        return originalFetch(input, { ...init, headers });
+        return originalFetch!(input, { ...init, headers });
       }
     }
 
-    // Pass through for non-Kimi requests
-    return originalFetch(input, init);
+    return originalFetch!(input, init);
   };
 
-  return {
+  const showInitialToast = async () => {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    isReady = true;
+    await flushToastQueue();
+    await showToast("🎉 Kimi Rotator Plugin loaded!", 'info');
+  };
+
+  showInitialToast().catch(() => {});
+
+  const pluginReturn = {
     auth: {
       provider: 'kimi-rotator',
       methods: [{
         type: 'api' as const,
         label: 'Kimi API Key',
       }],
-      loader: async (getAuth: () => Promise<OpenCodeAuth | null>, provider: any) => {
-        console.log("🔑 Kimi Rotator auth loader called!");
+      loader: async () => {
         const auth = await getAuth();
-        console.log("🔑 Auth from getAuth:", auth ? "found" : "null");
         if (!auth) {
           throw new Error('No Kimi API keys configured. Run: opencode kimi add-key <your-api-key>');
         }
-        console.log("🔑 Returning auth with key:", auth.key.substring(0, 10) + "...");
 
         const kimiBaseUrl = 'https://api.kimi.com/coding/v1';
 
         return {
           apiKey: auth.key,
           baseURL: kimiBaseUrl,
-          async fetch(input: any, init?: any) {
-            // Rotation happens in the global fetch interceptor
+          async fetch(input: string | Request | URL, init?: RequestInit) {
             return globalThis.fetch(input, init);
           }
         };
       },
     },
+    cleanup: () => {
+      if (originalFetch) {
+        globalThis.fetch = originalFetch;
+        originalFetch = null;
+      }
+      openCodeClient = null;
+      accountManager = null;
+      isReady = false;
+      toastQueue = [];
+    },
   };
+
+  return pluginReturn;
 };
 
 export default KimiRotatorPlugin;
