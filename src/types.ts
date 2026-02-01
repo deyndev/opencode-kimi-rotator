@@ -10,6 +10,8 @@ export const KimiAccountSchema = z.object({
   consecutiveFailures: z.number().default(0),
   totalRequests: z.number().default(0),
   successfulRequests: z.number().default(0),
+  responseTimes: z.array(z.number()).default([]),
+  dailyRequests: z.record(z.number()).default({}),
 });
 
 export const KimiAccountsConfigSchema = z.object({
@@ -17,6 +19,8 @@ export const KimiAccountsConfigSchema = z.object({
   accounts: z.array(KimiAccountSchema),
   activeIndex: z.number().default(0),
   rotationStrategy: z.enum(['round-robin', 'health-based', 'sticky']).default('health-based'),
+  autoRefreshHealth: z.boolean().default(true),
+  healthRefreshCooldownMinutes: z.number().min(1).max(1440).default(30),
 });
 
 export type KimiAccount = z.infer<typeof KimiAccountSchema>;
@@ -28,10 +32,14 @@ export const DEFAULT_ACCOUNT: Omit<KimiAccount, 'key' | 'addedAt' | 'lastUsed'> 
   consecutiveFailures: 0,
   totalRequests: 0,
   successfulRequests: 0,
+  responseTimes: [],
+  dailyRequests: {},
 };
 
 export const DEFAULT_CONFIG: Omit<KimiAccountsConfig, 'accounts'> = {
   version: 1,
   activeIndex: 0,
   rotationStrategy: 'health-based',
+  autoRefreshHealth: true,
+  healthRefreshCooldownMinutes: 30,
 };
