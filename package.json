@@ -14,9 +14,15 @@
     "bundle": "esbuild src/plugin.ts --bundle --platform=node --format=esm --outfile=dist/plugin.bundle.js --external:@opencode-ai/plugin --packages=bundle",
     "dev": "tsc --watch",
     "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
     "clean": "rm -rf dist",
     "install:plugin": "npm run bundle && mkdir -p ~/.config/opencode/plugins && cp dist/plugin.bundle.js ~/.config/opencode/plugins/kimi-rotator.js",
-    "prepublishOnly": "npm run build"
+    "postinstall": "npm run install:plugin && echo '\n✓ Kimi Rotator Plugin installed/updated!' && echo '  Location: ~/.config/opencode/plugins/kimi-rotator.js' && echo '  Restart OpenCode if currently running.'",
+    "prepublishOnly": "npm run build",
+    "ci": "npm run lint && npm run format:check && npm run typecheck"
   },
   "keywords": [
     "opencode",
@@ -40,15 +46,20 @@
   },
   "homepage": "https://github.com/deyndev/opencode-kimi-rotator#readme",
   "dependencies": {
-    "@opencode-ai/plugin": "^0.15.30",
+    "@opencode-ai/plugin": "^1.1.48",
     "proper-lockfile": "^4.1.2",
     "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@eslint/js": "^9.19.0",
     "@types/node": "^20.10.0",
     "@types/proper-lockfile": "^4.1.4",
     "esbuild": "^0.27.2",
-    "typescript": "^5.3.0"
+    "eslint": "^9.19.0",
+    "eslint-config-prettier": "^10.0.1",
+    "prettier": "^3.4.2",
+    "typescript": "^5.3.0",
+    "typescript-eslint": "^8.22.0"
   },
   "files": [
     "dist",
