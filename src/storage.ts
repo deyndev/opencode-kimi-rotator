@@ -52,7 +52,7 @@ export class KimiStorage {
     const release = await this.acquireLock();
     try {
       const data = await fs.readFile(this.accountsFilePath, 'utf-8');
-      const parsed = JSON.parse(data);
+      const parsed: unknown = JSON.parse(data);
       return KimiAccountsConfigSchema.parse(parsed);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
@@ -70,11 +70,7 @@ export class KimiStorage {
     const release = await this.acquireLock();
     try {
       const validated = KimiAccountsConfigSchema.parse(config);
-      await fs.writeFile(
-        this.accountsFilePath,
-        JSON.stringify(validated, null, 2),
-        'utf-8'
-      );
+      await fs.writeFile(this.accountsFilePath, JSON.stringify(validated, null, 2), 'utf-8');
     } finally {
       await release();
     }
@@ -83,7 +79,7 @@ export class KimiStorage {
   async addAccount(key: string, name?: string): Promise<KimiAccount> {
     const config = await this.loadConfig();
 
-    const existingIndex = config.accounts.findIndex(a => a.key === key);
+    const existingIndex = config.accounts.findIndex((a) => a.key === key);
     if (existingIndex !== -1) {
       throw new Error('This API key already exists');
     }
@@ -91,7 +87,7 @@ export class KimiStorage {
     const now = Date.now();
     const newAccount: KimiAccount = {
       key,
-      name: name || `Account ${config.accounts.length + 1}`,
+      name: name ?? `Account ${config.accounts.length + 1}`,
       addedAt: now,
       lastUsed: now,
       ...DEFAULT_ACCOUNT,
@@ -107,7 +103,7 @@ export class KimiStorage {
     const config = await this.loadConfig();
 
     if (index < 0 || index >= config.accounts.length) {
-      throw new Error(`Invalid account index: ${index}`);
+      throw new Error(`Invalid account index: ${String(index)}`);
     }
 
     config.accounts.splice(index, 1);
@@ -136,7 +132,7 @@ export class KimiStorage {
     const config = await this.loadConfig();
 
     if (index < 0 || index >= config.accounts.length) {
-      throw new Error(`Invalid account index: ${index}`);
+      throw new Error(`Invalid account index: ${String(index)}`);
     }
 
     config.activeIndex = index;
@@ -147,7 +143,7 @@ export class KimiStorage {
     const config = await this.loadConfig();
 
     if (index < 0 || index >= config.accounts.length) {
-      throw new Error(`Invalid account index: ${index}`);
+      throw new Error(`Invalid account index: ${String(index)}`);
     }
 
     config.accounts[index] = { ...config.accounts[index], ...updates };
