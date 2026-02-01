@@ -25,7 +25,19 @@ Automatically rotate between multiple Kimi API keys to handle rate limits and di
 <details open>
 <summary><b>For Humans</b></summary>
 
-**Option A: Automatic (Recommended)**
+**Option A: NPM (One-line installation)**
+
+```bash
+npm install -g opencode-kimi-rotator
+```
+
+That's it! The plugin is automatically built and installed. Now add your API keys:
+
+```bash
+opencode-kimi add-key sk-kimi-your-key-here "My Account"
+```
+
+**Option B: Automatic Install Script**
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/scripts/install.sh | bash
@@ -37,7 +49,7 @@ Or for Windows (PowerShell):
 irm https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/scripts/install.ps1 | iex
 ```
 
-**Option B: Manual setup**
+**Option C: Manual setup**
 
 1. **Clone and build the plugin**:
 
@@ -65,15 +77,8 @@ irm https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/scripts
                "output": 32768
              },
              "modalities": {
-               "input": [
-                 "text",
-                 "image",
-                 "video",
-                 "pdf"
-               ],
-               "output": [
-                 "text"
-               ]
+               "input": ["text", "image", "video", "pdf"],
+               "output": ["text"]
              }
            }
          }
@@ -117,9 +122,7 @@ Add the plugin to your existing config. The plugin path must use the full absolu
 
 ```json
 {
-  "plugin": [
-    "file:///Users/YOUR_USERNAME/.config/opencode/plugins/kimi-rotator.js"
-  ],
+  "plugin": ["file:///Users/YOUR_USERNAME/.config/opencode/plugins/kimi-rotator.js"],
   "provider": {
     "anthropic": {
       "name": "Anthropic",
@@ -132,15 +135,8 @@ Add the plugin to your existing config. The plugin path must use the full absolu
             "output": 32768
           },
           "modalities": {
-            "input": [
-              "text",
-              "image",
-              "video",
-              "pdf"
-            ],
-            "output": [
-              "text"
-            ]
+            "input": ["text", "image", "video", "pdf"],
+            "output": ["text"]
           }
         }
       }
@@ -150,6 +146,7 @@ Add the plugin to your existing config. The plugin path must use the full absolu
 ```
 
 > **Important**: Replace `YOUR_USERNAME` with your actual username. Example paths:
+>
 > - macOS: `file:///Users/john/.config/opencode/plugins/kimi-rotator.js`
 > - Linux: `file:///home/john/.config/opencode/plugins/kimi-rotator.js`
 
@@ -193,13 +190,13 @@ opencode-kimi list-keys
 ```
 
 ### What the plugin does automatically:
+
 - Sets `ANTHROPIC_BASE_URL` to Kimi's API endpoint
 - Intercepts fetch requests to `api.kimi.com`
 - Rotates API keys based on health scores
 - Shows toast notifications for key rotation
 
 </details>
-
 
 ---
 
@@ -209,12 +206,11 @@ opencode-kimi list-keys
 
 The Kimi Coding API provides a single flagship model:
 
-| Model ID | Name | Context | Output |
-|----------|------|---------|--------|
+| Model ID          | Name      | Context | Output |
+| ----------------- | --------- | ------- | ------ |
 | `kimi-for-coding` | Kimi K2.5 | 262,144 | 32,768 |
 
 Use it as: `anthropic/kimi-for-coding`
-
 
 <details>
 <summary><b>Full configuration (copy-paste ready)</b></summary>
@@ -224,9 +220,7 @@ Add this to your `~/.config/opencode/opencode.json`:
 ```json
 {
   "$schema": "https://opencode.ai/config.json",
-  "plugin": [
-    "file:///Users/YOUR_USERNAME/.config/opencode/plugins/kimi-rotator.js"
-  ],
+  "plugin": ["file:///Users/YOUR_USERNAME/.config/opencode/plugins/kimi-rotator.js"],
   "provider": {
     "anthropic": {
       "name": "Anthropic",
@@ -239,15 +233,8 @@ Add this to your `~/.config/opencode/opencode.json`:
             "output": 32768
           },
           "modalities": {
-            "input": [
-              "text",
-              "image",
-              "video",
-              "pdf"
-            ],
-            "output": [
-              "text"
-            ]
+            "input": ["text", "image", "video", "pdf"],
+            "output": ["text"]
           }
         }
       }
@@ -277,6 +264,7 @@ opencode-kimi list-keys
 ```
 
 Output:
+
 ```
 Kimi API Keys (2 total, strategy: health-based):
 
@@ -318,6 +306,64 @@ opencode-kimi set-strategy health-based
 opencode-kimi set-strategy sticky
 ```
 
+### View Usage Statistics
+
+```bash
+opencode-kimi stats
+```
+
+Output:
+
+```
+📊 Usage Statistics
+
+[0] My Account 1
+   Total Requests: 1425
+   Successful: 1227
+   Failed: 198
+   Success Rate: 86.1%
+   Avg Response Time: 245ms
+   Requests Today: 12
+   Requests Last 7 Days: 89
+
+[1] My Account 2
+   Total Requests: 811
+   Successful: 793
+   Failed: 18
+   Success Rate: 97.8%
+   Avg Response Time: 198ms
+   Requests Today: 5
+   Requests Last 7 Days: 42
+
+──────────────────────────────────────────────────
+📈 Aggregate Statistics
+   Total Requests (All Keys): 2236
+   Total Successful: 2020
+   Overall Success Rate: 90.3%
+   Overall Avg Response Time: 221ms
+```
+
+### Health Auto-Refresh
+
+Automatically restore health scores for rate-limited keys after a cooldown period.
+
+```bash
+# Check current auto-refresh settings
+opencode-kimi list-keys
+
+# Enable/disable auto-refresh (default: enabled)
+opencode-kimi set-auto-refresh true
+opencode-kimi set-auto-refresh false
+
+# Set cooldown period in minutes (default: 30, range: 1-1440)
+opencode-kimi set-cooldown 30
+opencode-kimi set-cooldown 60   # 1 hour
+opencode-kimi set-cooldown 180  # 3 hours
+
+# Manually trigger health refresh
+opencode-kimi refresh-health
+```
+
 ---
 
 ## How It Works
@@ -325,6 +371,7 @@ opencode-kimi set-strategy sticky
 ### Health Score System
 
 Each API key has a health score (0-100):
+
 - **Initial**: 100
 - **Success**: +2 points
 - **Rate Limited**: -15 points
@@ -335,6 +382,7 @@ Keys with health score < 30 are temporarily skipped.
 ### Rate Limit Handling
 
 When a key is rate limited:
+
 1. Health score decreases
 2. Key is marked as rate limited with reset time
 3. Next request automatically uses next available key
@@ -343,6 +391,7 @@ When a key is rate limited:
 ### Data Storage
 
 Keys are stored in `~/.config/opencode/kimi-accounts.json`:
+
 ```json
 {
   "version": 1,
@@ -356,13 +405,54 @@ Keys are stored in `~/.config/opencode/kimi-accounts.json`:
       "healthScore": 100,
       "consecutiveFailures": 0,
       "totalRequests": 50,
-      "successfulRequests": 45
+      "successfulRequests": 45,
+      "responseTimes": [245, 198, 210],
+      "dailyRequests": {
+        "2026-01-31": 12,
+        "2026-02-01": 5
+      }
     }
   ],
   "activeIndex": 0,
-  "rotationStrategy": "health-based"
+  "rotationStrategy": "health-based",
+  "autoRefreshHealth": true,
+  "healthRefreshCooldownMinutes": 30
 }
 ```
+
+### Account Tracking
+
+Each account tracks additional metrics for health-based rotation:
+
+- **responseTimes** — Array of the last 100 response times (in milliseconds)
+- **dailyRequests** — Record of request counts by date (YYYY-MM-DD format)
+
+### Health Auto-Refresh Settings
+
+- **autoRefreshHealth** — Whether to automatically refresh health scores after cooldown (default: `true`)
+- **healthRefreshCooldownMinutes** — Minutes to wait before health can be refreshed (default: `30`, range: 1-1440)
+
+When enabled, keys that were rate-limited will have their health score gradually restored (+10 points) after the cooldown period passes, making them available for rotation again.
+
+### Export/Import Keys
+
+Backup and migrate your API keys between machines using encrypted files.
+
+```bash
+# Export all keys to an encrypted file
+opencode-kimi export-keys
+opencode-kimi export-keys my-backup.json.enc
+
+# Import keys from an encrypted file
+opencode-kimi import-keys my-backup.json.enc
+```
+
+**Features:**
+
+- AES-256-GCM encryption with password protection
+- Exports all keys, settings, and statistics
+- Duplicate keys are skipped during import
+- Rotation strategy and auto-refresh settings are preserved
 
 ---
 
@@ -372,10 +462,10 @@ Keys are stored in `~/.config/opencode/kimi-accounts.json`:
 
 OpenCode uses `~/.config/opencode/` on **all platforms** including Windows.
 
-| File | Path |
-|------|------|
-| Main config | `~/.config/opencode/opencode.json` |
-| Accounts | `~/.config/opencode/kimi-accounts.json` |
+| File        | Path                                    |
+| ----------- | --------------------------------------- |
+| Main config | `~/.config/opencode/opencode.json`      |
+| Accounts    | `~/.config/opencode/kimi-accounts.json` |
 
 > **Windows users**: `~` resolves to your user home directory (e.g., `C:\Users\YourName`). Do NOT use `%APPDATA%`.
 
@@ -411,6 +501,7 @@ To use Kimi models with Oh My OpenCode agents, update `~/.config/opencode/oh-my-
 ### "No Kimi API keys configured"
 
 Run:
+
 ```bash
 opencode-kimi add-key your-api-key
 ```
@@ -418,6 +509,7 @@ opencode-kimi add-key your-api-key
 ### All keys rate limited
 
 The plugin will wait for the soonest available key. You can:
+
 1. Wait for rate limits to reset
 2. Add more API keys
 3. Check status with `opencode-kimi list-keys`
@@ -431,6 +523,7 @@ The plugin will wait for the soonest available key. You can:
 ### Reset Everything
 
 If you need to start fresh:
+
 ```bash
 rm ~/.config/opencode/kimi-accounts.json
 opencode-kimi add-key your-new-api-key
@@ -446,10 +539,7 @@ Both plugins can work together. List them in your preferred order:
 
 ```json
 {
-  "plugin": [
-    "opencode-kimi-rotator@latest",
-    "opencode-antigravity-auth@latest"
-  ]
+  "plugin": ["opencode-kimi-rotator@latest", "opencode-antigravity-auth@latest"]
 }
 ```
 
@@ -492,26 +582,273 @@ irm https://raw.githubusercontent.com/deyndev/opencode-kimi-rotator/main/scripts
 ### Local Development Setup
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/deyndev/opencode-kimi-rotator.git
 cd opencode-kimi-rotator
 ```
 
 2. Install dependencies and build:
+
 ```bash
 npm install
 npm run build
 ```
 
 3. Link for local testing:
+
 ```bash
 npm link
 ```
 
 4. Add to your OpenCode config:
+
 ```json
 {
   "plugin": ["opencode-kimi-rotator"]
+}
+```
+
+---
+
+## Public API
+
+### `KimiAccountManager`
+
+Main class for managing Kimi API key rotation.
+
+#### Methods
+
+##### `markAccountSuccess(index, responseTime?, date?)`
+
+Marks an account as successfully used and updates health metrics.
+
+```typescript
+async markAccountSuccess(
+  index: number,
+  responseTime?: number,
+  date?: string
+): Promise<void>
+```
+
+- **index** — Account index in the accounts array
+- **responseTime** — Optional response time in milliseconds (tracked in rolling window of 100)
+- **date** — Optional date string (YYYY-MM-DD) for daily request tracking
+
+##### `setAutoRefreshHealth(enabled)`
+
+Enables or disables automatic health score refresh.
+
+```typescript
+async setAutoRefreshHealth(enabled: boolean): Promise<void>
+```
+
+##### `setHealthRefreshCooldown(minutes)`
+
+Sets the cooldown period for health refresh.
+
+```typescript
+async setHealthRefreshCooldown(minutes: number): Promise<void>
+```
+
+- **minutes** — Cooldown duration (1-1440, default: 30)
+- **Throws** — Error if minutes is outside valid range
+
+##### `refreshHealthScores()`
+
+Manually triggers health score refresh for eligible accounts.
+
+```typescript
+async refreshHealthScores(): Promise<{
+  refreshed: number;
+  details: string[];
+}>
+```
+
+Returns the number of accounts refreshed and detailed change log.
+
+### `KimiStorage`
+
+Handles persistent storage of account configuration with file locking.
+
+#### Constructor
+
+```typescript
+constructor();
+```
+
+Creates a new storage instance. The config directory is automatically set to `~/.config/opencode/`.
+
+#### Methods
+
+##### `init()`
+
+Initializes the storage directory and files.
+
+```typescript
+async init(): Promise<void>
+```
+
+Creates the config directory if it doesn't exist and initializes an empty accounts file.
+
+##### `loadConfig()`
+
+Loads and validates the accounts configuration.
+
+```typescript
+async loadConfig(): Promise<KimiAccountsConfig>
+```
+
+- **Returns** — Parsed and validated configuration
+- **Throws** — Error if file cannot be read or parsed
+
+##### `saveConfig(config)`
+
+Saves the configuration to disk with file locking.
+
+```typescript
+async saveConfig(config: KimiAccountsConfig): Promise<void>
+```
+
+- **config** — Configuration object to save
+- **Throws** — Error if validation fails or file cannot be written
+
+##### `addAccount(key, name?)`
+
+Adds a new API key account.
+
+```typescript
+async addAccount(key: string, name?: string): Promise<KimiAccount>
+```
+
+- **key** — The API key to store
+- **name** — Optional display name for the account
+- **Returns** — The created account object
+- **Throws** — Error if the key already exists
+
+##### `removeAccount(index)`
+
+Removes an account by index.
+
+```typescript
+async removeAccount(index: number): Promise<void>
+```
+
+- **index** — Account index to remove
+- **Throws** — Error if index is invalid
+
+##### `listAccounts()`
+
+Returns all stored accounts.
+
+```typescript
+async listAccounts(): Promise<KimiAccount[]>
+```
+
+##### `getActiveAccount()`
+
+Returns the currently active account.
+
+```typescript
+async getActiveAccount(): Promise<KimiAccount | null>
+```
+
+- **Returns** — The active account or `null` if no accounts exist
+
+##### `setActiveIndex(index)`
+
+Sets the active account index.
+
+```typescript
+async setActiveIndex(index: number): Promise<void>
+```
+
+- **index** — Account index to set as active
+- **Throws** — Error if index is invalid
+
+##### `updateAccount(index, updates)`
+
+Updates specific fields of an account.
+
+```typescript
+async updateAccount(index: number, updates: Partial<KimiAccount>): Promise<void>
+```
+
+- **index** — Account index to update
+- **updates** — Partial account object with fields to update
+- **Throws** — Error if index is invalid
+
+### Schemas
+
+#### `KimiAccountSchema`
+
+Zod schema for validating Kimi account objects:
+
+```javascript
+{
+  key: string,              // API key (required)
+  name: string,             // Optional account name
+  addedAt: number,          // Timestamp when added
+  lastUsed: number,         // Timestamp of last use
+  rateLimitResetTime: number,    // Default: 0
+  healthScore: number,      // 0-100, default: 100
+  consecutiveFailures: number,   // Default: 0
+  totalRequests: number,    // Default: 0
+  successfulRequests: number,    // Default: 0
+  responseTimes: number[],  // Array of response times (ms)
+  dailyRequests: Record<string, number>  // Requests per day
+}
+```
+
+#### `KimiAccountsConfigSchema`
+
+Zod schema for the accounts configuration:
+
+```javascript
+{
+  version: number,                   // Default: 1
+  accounts: KimiAccount[],           // Array of accounts
+  activeIndex: number,               // Default: 0
+  rotationStrategy: 'round-robin' | 'health-based' | 'sticky',
+  autoRefreshHealth: boolean,        // Default: true
+  healthRefreshCooldownMinutes: number  // Default: 30, range: 1-1440
+}
+```
+
+### Types
+
+- `KimiAccount` — Inferred type from `KimiAccountSchema`
+- `KimiAccountsConfig` — Inferred type from `KimiAccountsConfigSchema`
+
+### Constants
+
+#### `DEFAULT_ACCOUNT`
+
+Default values for new accounts (excludes `key`, `addedAt`, `lastUsed`):
+
+```javascript
+{
+  rateLimitResetTime: 0,
+  healthScore: 100,
+  consecutiveFailures: 0,
+  totalRequests: 0,
+  successfulRequests: 0,
+  responseTimes: [],
+  dailyRequests: {}
+}
+```
+
+#### `DEFAULT_CONFIG`
+
+Default configuration values (excludes `accounts`):
+
+```javascript
+{
+  version: 1,
+  activeIndex: 0,
+  rotationStrategy: 'health-based',
+  autoRefreshHealth: true,
+  healthRefreshCooldownMinutes: 30
 }
 ```
 
@@ -545,3 +882,13 @@ By using this plugin, you acknowledge:
 - "Kimi", "Moonshot", and "Moonshot AI" are trademarks of Moonshot AI.
 
 </details>
+
+---
+
+## Contributors
+
+Thanks to all the people who already contributed!
+
+<a href="https://github.com/deyndev/opencode-kimi-rotator/graphs/contributors">
+  <img src="https://contributors-img.web.app/image?repo=deyndev/opencode-kimi-rotator&max=750&columns=20" />
+</a>
