@@ -91,6 +91,23 @@ export class KimiAccountManager {
     });
   }
 
+  async markAccountBillingLimited(index: number): Promise<void> {
+    const account = await this.getAccount(index);
+    const newHealthScore = Math.max(0, account.healthScore - 30);
+
+    // Set cooldown until end of current day (midnight) + 24 hours
+    // This ensures the key won't be tried again for at least 24 hours
+    const now = new Date();
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+    const cooldownUntil = endOfDay.getTime();
+
+    await this.storage.updateAccount(index, {
+      healthScore: newHealthScore,
+      billingLimitResetTime: cooldownUntil,
+      consecutiveFailures: account.consecutiveFailures + 1,
+    });
+  }
+
   async markAccountFailure(index: number): Promise<void> {
     const account = await this.getAccount(index);
     const newHealthScore = Math.max(0, account.healthScore - 20);
@@ -329,7 +346,8 @@ export class KimiAccountManager {
   }
 
   private isRateLimited(account: KimiAccount): boolean {
-    return account.rateLimitResetTime > Date.now();
+    const now = Date.now();
+    return account.rateLimitResetTime > now || account.billingLimitResetTime > now;
   }
 
   private async getAccount(index: number): Promise<KimiAccount> {

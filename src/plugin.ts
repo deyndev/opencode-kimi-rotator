@@ -131,6 +131,26 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
             await accountManager.markAccountSuccess(currentAccountIndex, responseTime, today);
           } else if (response.status >= 500) {
             await accountManager.markAccountFailure(currentAccountIndex);
+          } else if (response.status === 400 || response.status === 403) {
+            // Check for billing limit error in response body
+            // We need to clone the response to read the body without consuming it
+            const clonedResponse = response.clone();
+            try {
+              const bodyText = await clonedResponse.text();
+              if (bodyText.includes("You've reached your usage limit for this billing cycle")) {
+                await accountManager.markAccountBillingLimited(currentAccountIndex);
+                const resetTime = new Date();
+                resetTime.setDate(resetTime.getDate() + 1);
+                resetTime.setHours(0, 0, 0, 0);
+                const hoursUntilReset = Math.ceil((resetTime.getTime() - Date.now()) / (1000 * 60 * 60));
+                await showToast(
+                  `🚫 Key ${String(position)} billing limit reached - cooldown for ${String(hoursUntilReset)}h`,
+                  'warning'
+                );
+              }
+            } catch {
+              // Ignore errors reading response body
+            }
           }
 
           return response;

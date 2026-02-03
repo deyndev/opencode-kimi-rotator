@@ -6,6 +6,7 @@ export const KimiAccountSchema = z.object({
   addedAt: z.number(),
   lastUsed: z.number(),
   rateLimitResetTime: z.number().default(0),
+  billingLimitResetTime: z.number().default(0),
   healthScore: z.number().min(0).max(100).default(100),
   consecutiveFailures: z.number().default(0),
   totalRequests: z.number().default(0),
@@ -28,6 +29,7 @@ export type KimiAccountsConfig = z.infer<typeof KimiAccountsConfigSchema>;
 
 export const DEFAULT_ACCOUNT: Omit<KimiAccount, 'key' | 'addedAt' | 'lastUsed'> = {
   rateLimitResetTime: 0,
+  billingLimitResetTime: 0,
   healthScore: 100,
   consecutiveFailures: 0,
   totalRequests: 0,
