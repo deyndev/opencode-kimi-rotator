@@ -22,6 +22,31 @@ export class KimiAccountManager {
     await this.storage.init();
   }
 
+  /**
+   * Gets the current active account WITHOUT rotating.
+   * Use this for initial key fetches where you don't want to consume a rotation.
+   */
+  async getCurrentAccount(): Promise<RotationResult | null> {
+    const config = await this.storage.loadConfig();
+
+    if (config.accounts.length === 0) {
+      return null;
+    }
+
+    const currentIndex = config.activeIndex;
+    const account = config.accounts[currentIndex];
+
+    return {
+      account,
+      index: currentIndex,
+      reason: 'current',
+    };
+  }
+
+  /**
+   * Gets the next account and advances rotation.
+   * Use this when actually making an API request to rotate to the next key.
+   */
   async getNextAccount(forceRotation = false): Promise<RotationResult | null> {
     const config = await this.storage.loadConfig();
 

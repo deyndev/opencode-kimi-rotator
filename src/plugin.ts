@@ -21,7 +21,9 @@ async function getAccountManager(): Promise<KimiAccountManager> {
 
 async function getAuth(): Promise<OpenCodeAuth | null> {
   const manager = await getAccountManager();
-  const result = await manager.getNextAccount();
+  // Use getCurrentAccount to get the active key WITHOUT rotating
+  // Rotation only happens in the fetch interceptor on actual API calls
+  const result = await manager.getCurrentAccount();
 
   if (!result) {
     return null;
@@ -78,7 +80,8 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
 
   accountManager = await getAccountManager();
 
-  const result = await accountManager.getNextAccount();
+  // Use getCurrentAccount for init - don't rotate on plugin load
+  const result = await accountManager.getCurrentAccount();
 
   if (result) {
     const kimiBaseUrl = 'https://api.kimi.com/coding/v1';
