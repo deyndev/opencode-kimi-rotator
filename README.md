@@ -392,13 +392,23 @@ When a key is rate limited (HTTP 429):
 
 ### Billing Cycle Limit Handling
 
-When a key hits the billing cycle usage limit ("You've reached your usage limit for this billing cycle"):
+When a key hits a billing or usage limit, the plugin detects multiple error patterns:
+
+- "You've reached your usage limit for this billing cycle"
+- "billing limit"
+- "usage limit exceeded"
+- "quota exceeded"
+- "insufficient credits"
+- "payment required"
+
+When any of these patterns are detected in HTTP 400/403 responses:
 
 1. Health score decreases by 30 points
 2. Key is put on a 24-hour cooldown (until midnight of the next day)
 3. Next request automatically uses next available key
 4. A toast notification shows how many hours until the key is available
 5. The key won't be retried until the cooldown expires
+6. Non-billing-limit HTTP 400/403 errors are marked as regular failures
 
 ### Data Storage
 
@@ -541,6 +551,21 @@ If you need to start fresh:
 rm ~/.config/opencode/kimi-accounts.json
 opencode-kimi add-key your-new-api-key
 ```
+
+### Debug Mode
+
+Enable debug logging to troubleshoot issues:
+
+```bash
+export KIMI_ROTATOR_DEBUG=true
+opencode run "Hello" --model=anthropic/kimi-for-coding
+```
+
+Debug output includes:
+
+- HTTP response body snippets for error responses
+- Billing limit detection details
+- Response parsing errors
 
 ---
 

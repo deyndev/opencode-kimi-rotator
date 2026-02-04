@@ -56,6 +56,9 @@ async function main() {
       case 'import-keys':
         await importKeys(manager, args.slice(1));
         break;
+      case 'clear-limits':
+        await clearLimits(manager, args.slice(1));
+        break;
       case 'help':
       default:
         showHelp();
@@ -545,6 +548,38 @@ async function promptPassword(prompt) {
   });
 }
 
+async function clearLimits(manager, args) {
+  const index = parseInt(args[0], 10);
+
+  if (isNaN(index)) {
+    console.error('Usage: opencode-kimi clear-limits <index>');
+    console.error('');
+    console.error('Clear billing and rate limits for a specific key.');
+    console.error('Use "all" to clear limits for all keys.');
+    process.exit(1);
+  }
+
+  if (args[0] === 'all') {
+    const accounts = await manager.listKeys();
+    let cleared = 0;
+    for (let i = 0; i < accounts.length; i++) {
+      await manager.clearAccountLimits(i);
+      cleared++;
+    }
+    console.log(`✓ Cleared limits for all ${cleared} key(s)`);
+    return;
+  }
+
+  const accounts = await manager.listKeys();
+  if (index < 0 || index >= accounts.length) {
+    console.error(`Invalid index. Valid range: 0-${accounts.length - 1}`);
+    process.exit(1);
+  }
+
+  await manager.clearAccountLimits(index);
+  console.log(`✓ Cleared limits for key: ${accounts[index].name} (index ${index})`);
+}
+
 function showHelp() {
   console.log('Kimi API Key Rotator for OpenCode');
   console.log('');
@@ -561,6 +596,7 @@ function showHelp() {
   console.log('  refresh-health             Manually refresh health scores');
   console.log('  set-auto-refresh <true|false>  Enable/disable auto-refresh');
   console.log('  set-cooldown <minutes>     Set health refresh cooldown');
+  console.log('  clear-limits <index|all>   Clear billing/rate limits for key(s)');
   console.log('  export-keys [file]         Export keys to encrypted file');
   console.log('  import-keys <file>         Import keys from encrypted file');
   console.log('  help                       Show this help message');

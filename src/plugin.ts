@@ -7,9 +7,26 @@ interface OpenCodeAuth {
   key: string;
 }
 
+const BILLING_LIMIT_PATTERNS = [
+  "you've reached your usage limit for this billing cycle",
+  'billing limit',
+  'usage limit exceeded',
+  'quota exceeded',
+  'insufficient credits',
+  'payment required',
+];
+
+const DEBUG_MODE = process.env.KIMI_ROTATOR_DEBUG === 'true';
+
 let accountManager: KimiAccountManager | null = null;
 let currentAccountIndex = 0;
 let originalFetch: typeof globalThis.fetch | null = null;
+
+function debugLog(message: string, data?: unknown) {
+  if (DEBUG_MODE) {
+    console.log(`[KimiRotator Debug] ${message}`, data ?? '');
+  }
+}
 
 async function getAccountManager(): Promise<KimiAccountManager> {
   if (!accountManager) {
@@ -135,24 +152,46 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
           } else if (response.status >= 500) {
             await accountManager.markAccountFailure(currentAccountIndex);
           } else if (response.status === 400 || response.status === 403) {
-            // Check for billing limit error in response body
-            // We need to clone the response to read the body without consuming it
             const clonedResponse = response.clone();
             try {
               const bodyText = await clonedResponse.text();
-              if (bodyText.includes("You've reached your usage limit for this billing cycle")) {
-                await accountManager.markAccountBillingLimited(currentAccountIndex);
-                const resetTime = new Date();
-                resetTime.setDate(resetTime.getDate() + 1);
-                resetTime.setHours(0, 0, 0, 0);
-                const hoursUntilReset = Math.ceil((resetTime.getTime() - Date.now()) / (1000 * 60 * 60));
-                await showToast(
-                  `🚫 Key ${String(position)} billing limit reached - cooldown for ${String(hoursUntilReset)}h`,
-                  'warning'
+              const bodyLower = bodyText.toLowerCase();
+
+              debugLog(`HTTP ${response.status} for key ${String(position)}`, {
+                bodyPreview: bodyText.substring(0, 200).replace(/\s+/g, ' '),
+              });
+
+              const isBillingLimit = BILLING_LIMIT_PATTERNS.some((pattern) =>
+                bodyLower.includes(pattern)
+              );
+
+              if (isBillingLimit && accountManager) {
+                const result = await accountManager.recordBillingLimitHit(currentAccountIndex);
+                if (result.isConfirmed) {
+                  const resetTime = new Date();
+                  resetTime.setDate(resetTime.getDate() + 1);
+                  resetTime.setHours(0, 0, 0, 0);
+                  const hoursUntilReset = Math.ceil(
+                    (resetTime.getTime() - Date.now()) / (1000 * 60 * 60)
+                  );
+                  await showToast(
+                    `🚫 Key ${String(position)} billing limit reached - cooldown for ${String(hoursUntilReset)}h`,
+                    'warning'
+                  );
+                } else {
+                  debugLog(
+                    `Billing limit hit ${2 - result.hitsNeeded}/2 for key ${String(position)} - not confirmed yet`
+                  );
+                }
+              } else if (accountManager) {
+                debugLog(
+                  `HTTP ${response.status} but not billing limit for key ${String(position)}`
                 );
+                await accountManager.resetBillingLimitHits(currentAccountIndex);
+                await accountManager.markAccountFailure(currentAccountIndex);
               }
-            } catch {
-              // Ignore errors reading response body
+            } catch (error) {
+              debugLog('Error reading response body:', error);
             }
           }
 

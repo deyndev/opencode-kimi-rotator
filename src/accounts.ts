@@ -116,20 +116,48 @@ export class KimiAccountManager {
     });
   }
 
-  async markAccountBillingLimited(index: number): Promise<void> {
+  async recordBillingLimitHit(
+    index: number
+  ): Promise<{ isConfirmed: boolean; hitsNeeded: number }> {
     const account = await this.getAccount(index);
-    const newHealthScore = Math.max(0, account.healthScore - 30);
+    const newHits = (account.consecutiveBillingLimitHits || 0) + 1;
+    const REQUIRED_HITS = 2;
 
-    // Set cooldown until end of current day (midnight) + 24 hours
-    // This ensures the key won't be tried again for at least 24 hours
-    const now = new Date();
-    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
-    const cooldownUntil = endOfDay.getTime();
+    if (newHits >= REQUIRED_HITS) {
+      const newHealthScore = Math.max(0, account.healthScore - 30);
+      const now = new Date();
+      const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+      const cooldownUntil = endOfDay.getTime();
 
+      await this.storage.updateAccount(index, {
+        healthScore: newHealthScore,
+        billingLimitResetTime: cooldownUntil,
+        consecutiveBillingLimitHits: newHits,
+        consecutiveFailures: account.consecutiveFailures + 1,
+      });
+
+      return { isConfirmed: true, hitsNeeded: 0 };
+    } else {
+      await this.storage.updateAccount(index, {
+        consecutiveBillingLimitHits: newHits,
+      });
+
+      return { isConfirmed: false, hitsNeeded: REQUIRED_HITS - newHits };
+    }
+  }
+
+  async resetBillingLimitHits(index: number): Promise<void> {
     await this.storage.updateAccount(index, {
-      healthScore: newHealthScore,
-      billingLimitResetTime: cooldownUntil,
-      consecutiveFailures: account.consecutiveFailures + 1,
+      consecutiveBillingLimitHits: 0,
+    });
+  }
+
+  async clearAccountLimits(index: number): Promise<void> {
+    await this.storage.updateAccount(index, {
+      billingLimitResetTime: 0,
+      rateLimitResetTime: 0,
+      consecutiveFailures: 0,
+      consecutiveBillingLimitHits: 0,
     });
   }
 
