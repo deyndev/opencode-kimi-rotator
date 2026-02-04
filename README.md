@@ -779,6 +779,16 @@ async setActiveIndex(index: number): Promise<void>
 - **index** — Account index to set as active
 - **Throws** — Error if index is invalid
 
+##### `getActiveIndex()`
+
+Returns the current active account index.
+
+```typescript
+async getActiveIndex(): Promise<number>
+```
+
+- **Returns** — The current active index from the configuration
+
 ##### `getAndIncrementActiveIndex(availableIndices)`
 
 Atomically gets the current active index and sets the next one for round-robin rotation. This ensures proper serialization of rotation operations.
@@ -790,6 +800,17 @@ async getAndIncrementActiveIndex(availableIndices: number[]): Promise<number>
 - **availableIndices** — Array of available account indices to rotate through
 - **Returns** — The selected next index (guaranteed to be unique per call)
 - **Throws** — Error if no available indices are provided
+
+##### `atomicSetActiveIndex(preferredIndex)`
+
+Atomically sets the active index to a specific value. Use this for sticky and health-based rotation to claim an account.
+
+```typescript
+async atomicSetActiveIndex(preferredIndex: number): Promise<number>
+```
+
+- **preferredIndex** — The desired index to set
+- **Returns** — The actual index that was set (may differ if validation fails)
 
 ##### `updateAccount(index, updates)`
 
