@@ -779,6 +779,18 @@ async setActiveIndex(index: number): Promise<void>
 - **index** — Account index to set as active
 - **Throws** — Error if index is invalid
 
+##### `getAndIncrementActiveIndex(availableIndices)`
+
+Atomically gets the current active index and sets the next one for round-robin rotation. This ensures proper serialization of rotation operations.
+
+```typescript
+async getAndIncrementActiveIndex(availableIndices: number[]): Promise<number>
+```
+
+- **availableIndices** — Array of available account indices to rotate through
+- **Returns** — The selected next index (guaranteed to be unique per call)
+- **Throws** — Error if no available indices are provided
+
 ##### `updateAccount(index, updates)`
 
 Updates specific fields of an account.
