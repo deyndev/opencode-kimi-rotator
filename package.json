@@ -1,6 +1,6 @@
 {
   "name": "opencode-kimi-rotator",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Kimi API Key Rotator for OpenCode - Automatically rotate between multiple Kimi API keys to handle rate limits",
   "main": "./dist/plugin.js",
   "types": "dist/index.d.ts",
@@ -20,8 +20,8 @@
     "format:check": "prettier --check .",
     "clean": "rm -rf dist",
     "install:plugin": "npm run bundle && mkdir -p ~/.config/opencode/plugins && cp dist/plugin.bundle.js ~/.config/opencode/plugins/kimi-rotator.js",
-    "postinstall": "npm run install:plugin && echo '\n✓ Kimi Rotator Plugin installed/updated!' && echo '  Location: ~/.config/opencode/plugins/kimi-rotator.js' && echo '  Restart OpenCode if currently running.'",
-    "prepublishOnly": "npm run build",
+    "postinstall": "mkdir -p ~/.config/opencode/plugins && cp dist/plugin.bundle.js ~/.config/opencode/plugins/kimi-rotator.js && echo '✓ Kimi Rotator Plugin installed!' && echo '  Location: ~/.config/opencode/plugins/kimi-rotator.js' && echo '  Restart OpenCode if currently running.'",
+    "prepublishOnly": "npm run build && npm run bundle",
     "ci": "npm run lint && npm run format:check && npm run typecheck"
   },
   "keywords": [
