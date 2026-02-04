@@ -230,10 +230,7 @@ export class KimiAccountManager {
       return { account, index: soonestIndex, reason: 'all-rate-limited' };
     }
 
-    const currentIndex = config.activeIndex;
-    const nextIndex = availableIndices.find((idx) => idx > currentIndex) ?? availableIndices[0];
-
-    await this.storage.setActiveIndex(nextIndex);
+    const nextIndex = await this.storage.getAndIncrementActiveIndex(availableIndices);
     await this.markAccountUsed(nextIndex);
 
     return {

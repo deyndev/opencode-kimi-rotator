@@ -139,6 +139,66 @@ export class KimiStorage {
     await this.saveConfig(config);
   }
 
+  async getActiveIndex(): Promise<number> {
+    const config = await this.loadConfig();
+    return config.activeIndex;
+  }
+
+  /**
+   * Atomically get the current active index and set the next one.
+   * This ensures proper serialization of rotation operations.
+   * @param availableIndices - Array of available account indices to rotate through
+   * @returns The selected next index (guaranteed to be unique per call)
+   */
+  async getAndIncrementActiveIndex(availableIndices: number[]): Promise<number> {
+    if (availableIndices.length === 0) {
+      throw new Error('No available indices to rotate through');
+    }
+
+    const release = await this.acquireLock();
+    try {
+      const data = await fs.readFile(this.accountsFilePath, 'utf-8');
+      const parsed: unknown = JSON.parse(data);
+      const config = KimiAccountsConfigSchema.parse(parsed);
+
+      const currentIndex = config.activeIndex;
+      const nextIndex = availableIndices.find((idx) => idx > currentIndex) ?? availableIndices[0];
+
+      config.activeIndex = nextIndex;
+      const validated = KimiAccountsConfigSchema.parse(config);
+      await fs.writeFile(this.accountsFilePath, JSON.stringify(validated, null, 2), 'utf-8');
+
+      return nextIndex;
+    } finally {
+      await release();
+    }
+  }
+
+  /**
+   * Atomically set the active index to a specific value.
+   * Use this for sticky and health-based rotation to claim an account.
+   * @param preferredIndex - The desired index to set
+   * @returns The actual index that was set (may differ if validation fails)
+   */
+  async atomicSetActiveIndex(preferredIndex: number): Promise<number> {
+    const release = await this.acquireLock();
+    try {
+      const data = await fs.readFile(this.accountsFilePath, 'utf-8');
+      const parsed: unknown = JSON.parse(data);
+      const config = KimiAccountsConfigSchema.parse(parsed);
+
+      const validatedIndex = Math.max(0, Math.min(preferredIndex, config.accounts.length - 1));
+
+      config.activeIndex = validatedIndex;
+      const validated = KimiAccountsConfigSchema.parse(config);
+      await fs.writeFile(this.accountsFilePath, JSON.stringify(validated, null, 2), 'utf-8');
+
+      return validatedIndex;
+    } finally {
+      await release();
+    }
+  }
+
   async updateAccount(index: number, updates: Partial<KimiAccount>): Promise<void> {
     const config = await this.loadConfig();
 
