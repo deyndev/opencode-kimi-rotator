@@ -10,6 +10,7 @@ Automatically rotate between multiple Kimi API keys to handle rate limits and di
 
 - **Multiple API Key Support** — Store and manage unlimited Kimi API keys
 - **Auto-Rotation** — Automatically switch keys when rate limited
+- **Billing Limit Cooldown** — 24-hour automatic cooldown when billing cycle limits are reached
 - **Health-Based Selection** — Smart rotation using health scores and LRU
 - **Three Rotation Strategies**:
   - `round-robin` — Cycle through keys sequentially
@@ -374,19 +375,30 @@ Each API key has a health score (0-100):
 
 - **Initial**: 100
 - **Success**: +2 points
-- **Rate Limited**: -15 points
+- **Rate Limited (HTTP 429)**: -15 points
+- **Billing Limit Reached**: -30 points + 24-hour cooldown
 - **Failure**: -20 points
 
 Keys with health score < 30 are temporarily skipped.
 
 ### Rate Limit Handling
 
-When a key is rate limited:
+When a key is rate limited (HTTP 429):
 
-1. Health score decreases
-2. Key is marked as rate limited with reset time
+1. Health score decreases by 15 points
+2. Key is marked as rate limited with reset time from `retry-after` header
 3. Next request automatically uses next available key
 4. Once reset time passes, key becomes available again
+
+### Billing Cycle Limit Handling
+
+When a key hits the billing cycle usage limit ("You've reached your usage limit for this billing cycle"):
+
+1. Health score decreases by 30 points
+2. Key is put on a 24-hour cooldown (until midnight of the next day)
+3. Next request automatically uses next available key
+4. A toast notification shows how many hours until the key is available
+5. The key won't be retried until the cooldown expires
 
 ### Data Storage
 
@@ -402,6 +414,7 @@ Keys are stored in `~/.config/opencode/kimi-accounts.json`:
       "addedAt": 1234567890,
       "lastUsed": 1234567890,
       "rateLimitResetTime": 0,
+      "billingLimitResetTime": 0,
       "healthScore": 100,
       "consecutiveFailures": 0,
       "totalRequests": 50,

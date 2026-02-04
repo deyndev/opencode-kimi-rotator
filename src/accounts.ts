@@ -347,7 +347,9 @@ export class KimiAccountManager {
 
   private isRateLimited(account: KimiAccount): boolean {
     const now = Date.now();
-    return account.rateLimitResetTime > now || account.billingLimitResetTime > now;
+    const rateLimited = account.rateLimitResetTime > now;
+    const billingLimited = (account.billingLimitResetTime ?? 0) > now;
+    return rateLimited || billingLimited;
   }
 
   private async getAccount(index: number): Promise<KimiAccount> {
