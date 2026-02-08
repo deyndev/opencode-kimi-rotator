@@ -266,11 +266,12 @@ export class KimiAccountManager {
   }
 
   private async roundRobinRotation(config: KimiAccountsConfig): Promise<RotationResult> {
-    const availableIndices = this.getAvailableIndices(config);
+    const availableIndices = this.getRoundRobinIndices(config);
 
     if (availableIndices.length === 0) {
       const soonestIndex = this.getSoonestAvailableIndex(config);
       const account = config.accounts[soonestIndex];
+      await this.storage.setActiveIndex(soonestIndex);
       return { account, index: soonestIndex, reason: 'all-rate-limited' };
     }
 
@@ -397,13 +398,27 @@ export class KimiAccountManager {
       .map(({ index }) => index);
   }
 
+  private getRoundRobinIndices(config: KimiAccountsConfig): number[] {
+    return config.accounts
+      .map((account, index) => ({ account, index }))
+      .filter(({ account }) => !this.isRateLimited(account))
+      .map(({ index }) => index);
+  }
+
   private getSoonestAvailableIndex(config: KimiAccountsConfig): number {
     let soonestIndex = 0;
-    let soonestTime = config.accounts[0].rateLimitResetTime;
+    let soonestTime = Math.max(
+      config.accounts[0].rateLimitResetTime,
+      config.accounts[0].billingLimitResetTime ?? 0
+    );
 
     for (let i = 1; i < config.accounts.length; i++) {
-      if (config.accounts[i].rateLimitResetTime < soonestTime) {
-        soonestTime = config.accounts[i].rateLimitResetTime;
+      const accountReadyTime = Math.max(
+        config.accounts[i].rateLimitResetTime,
+        config.accounts[i].billingLimitResetTime ?? 0
+      );
+      if (accountReadyTime < soonestTime) {
+        soonestTime = accountReadyTime;
         soonestIndex = i;
       }
     }

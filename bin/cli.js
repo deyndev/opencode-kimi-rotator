@@ -549,17 +549,10 @@ async function promptPassword(prompt) {
 }
 
 async function clearLimits(manager, args) {
-  const index = parseInt(args[0], 10);
+  const target = (args[0] || '').trim();
+  const normalizedTarget = target.toLowerCase();
 
-  if (isNaN(index)) {
-    console.error('Usage: opencode-kimi clear-limits <index>');
-    console.error('');
-    console.error('Clear billing and rate limits for a specific key.');
-    console.error('Use "all" to clear limits for all keys.');
-    process.exit(1);
-  }
-
-  if (args[0] === 'all') {
+  if (normalizedTarget === 'all') {
     const accounts = await manager.listKeys();
     let cleared = 0;
     for (let i = 0; i < accounts.length; i++) {
@@ -568,6 +561,16 @@ async function clearLimits(manager, args) {
     }
     console.log(`✓ Cleared limits for all ${cleared} key(s)`);
     return;
+  }
+
+  const index = parseInt(target, 10);
+
+  if (isNaN(index)) {
+    console.error('Usage: opencode-kimi clear-limits <index>');
+    console.error('');
+    console.error('Clear billing and rate limits for a specific key.');
+    console.error('Use "all" to clear limits for all keys.');
+    process.exit(1);
   }
 
   const accounts = await manager.listKeys();
