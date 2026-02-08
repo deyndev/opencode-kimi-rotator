@@ -67,6 +67,18 @@ let openCodeClient: {
 
 let toastQueue: { message: string; variant: 'info' | 'warning' | 'error' }[] = [];
 
+function getRequestUrl(input: string | Request | URL): string {
+  if (typeof input === 'string') {
+    return input;
+  }
+
+  if (input instanceof URL) {
+    return input.toString();
+  }
+
+  return input.url;
+}
+
 async function showToast(message: string, variant: 'info' | 'warning' | 'error' = 'info') {
   if (!openCodeClient?.tui?.showToast) {
     toastQueue.push({ message, variant });
@@ -114,7 +126,7 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
     input: string | Request | URL,
     init?: RequestInit
   ): Promise<Response> => {
-    const url = typeof input === 'string' ? input : input.toString();
+    const url = getRequestUrl(input);
 
     if (url.includes('api.kimi.com')) {
       if (!accountManager) {
