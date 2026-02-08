@@ -86,6 +86,7 @@ export class KimiAccountManager {
       healthScore: newHealthScore,
       successfulRequests: account.successfulRequests + 1,
       consecutiveFailures: 0,
+      consecutiveBillingLimitHits: 0,
     };
 
     if (responseTime !== undefined) {
@@ -144,6 +145,21 @@ export class KimiAccountManager {
 
       return { isConfirmed: false, hitsNeeded: REQUIRED_HITS - newHits };
     }
+  }
+
+  async markAccountBillingLimited(index: number): Promise<void> {
+    const account = await this.getAccount(index);
+    const newHealthScore = Math.max(0, account.healthScore - 30);
+    const now = new Date();
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+    const cooldownUntil = endOfDay.getTime();
+
+    await this.storage.updateAccount(index, {
+      healthScore: newHealthScore,
+      billingLimitResetTime: cooldownUntil,
+      consecutiveBillingLimitHits: 2,
+      consecutiveFailures: account.consecutiveFailures + 1,
+    });
   }
 
   async resetBillingLimitHits(index: number): Promise<void> {

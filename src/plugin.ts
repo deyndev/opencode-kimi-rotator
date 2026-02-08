@@ -16,10 +16,15 @@ const BILLING_LIMIT_PATTERNS = [
   'payment required',
 ];
 
+const HARD_BILLING_LIMIT_PATTERNS = [
+  "you've reached your usage limit for this billing cycle",
+  'your quota will be refreshed in the next cycle',
+  'from=quota-upgrade',
+];
+
 const DEBUG_MODE = process.env.KIMI_ROTATOR_DEBUG === 'true';
 
 let accountManager: KimiAccountManager | null = null;
-let currentAccountIndex = 0;
 let originalFetch: typeof globalThis.fetch | null = null;
 
 function debugLog(message: string, data?: unknown) {
@@ -45,8 +50,6 @@ async function getAuth(): Promise<OpenCodeAuth | null> {
   if (!result) {
     return null;
   }
-
-  currentAccountIndex = result.index;
 
   return {
     type: 'api',
@@ -119,9 +122,9 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
       }
       const nextAccount = await accountManager.getNextAccount();
       if (nextAccount) {
-        currentAccountIndex = nextAccount.index;
+        const requestAccountIndex = nextAccount.index;
         const keyLabel = nextAccount.account.key.substring(0, 18) + '...';
-        const position = nextAccount.index + 1;
+        const position = requestAccountIndex + 1;
         const allKeysNow = await accountManager.listKeys();
         const total = allKeysNow.length;
 
@@ -145,12 +148,12 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
           if (response.status === 429) {
             const retryAfter = response.headers.get('retry-after');
             const retryAfterMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 60000;
-            await accountManager.markAccountRateLimited(currentAccountIndex, retryAfterMs);
+            await accountManager.markAccountRateLimited(requestAccountIndex, retryAfterMs);
             await showToast(`⚠️ Key ${String(position)} rate limited`, 'warning');
           } else if (response.ok) {
-            await accountManager.markAccountSuccess(currentAccountIndex, responseTime, today);
+            await accountManager.markAccountSuccess(requestAccountIndex, responseTime, today);
           } else if (response.status >= 500) {
-            await accountManager.markAccountFailure(currentAccountIndex);
+            await accountManager.markAccountFailure(requestAccountIndex);
           } else if (response.status === 400 || response.status === 403) {
             const clonedResponse = response.clone();
             try {
@@ -164,10 +167,13 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
               const isBillingLimit = BILLING_LIMIT_PATTERNS.some((pattern) =>
                 bodyLower.includes(pattern)
               );
+              const isHardBillingLimit = HARD_BILLING_LIMIT_PATTERNS.some((pattern) =>
+                bodyLower.includes(pattern)
+              );
 
               if (isBillingLimit && accountManager) {
-                const result = await accountManager.recordBillingLimitHit(currentAccountIndex);
-                if (result.isConfirmed) {
+                if (isHardBillingLimit) {
+                  await accountManager.markAccountBillingLimited(requestAccountIndex);
                   const resetTime = new Date();
                   resetTime.setDate(resetTime.getDate() + 1);
                   resetTime.setHours(0, 0, 0, 0);
@@ -179,16 +185,28 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
                     'warning'
                   );
                 } else {
-                  debugLog(
-                    `Billing limit hit ${2 - result.hitsNeeded}/2 for key ${String(position)} - not confirmed yet`
-                  );
+                  const result = await accountManager.recordBillingLimitHit(requestAccountIndex);
+                  if (result.isConfirmed) {
+                    const resetTime = new Date();
+                    resetTime.setDate(resetTime.getDate() + 1);
+                    resetTime.setHours(0, 0, 0, 0);
+                    const hoursUntilReset = Math.ceil(
+                      (resetTime.getTime() - Date.now()) / (1000 * 60 * 60)
+                    );
+                    await showToast(
+                      `🚫 Key ${String(position)} billing limit reached - cooldown for ${String(hoursUntilReset)}h`,
+                      'warning'
+                    );
+                  } else {
+                    debugLog(
+                      `Billing limit hit ${2 - result.hitsNeeded}/2 for key ${String(position)} - not confirmed yet`
+                    );
+                  }
                 }
               } else if (accountManager) {
-                debugLog(
-                  `HTTP ${response.status} but not billing limit for key ${String(position)}`
-                );
-                await accountManager.resetBillingLimitHits(currentAccountIndex);
-                await accountManager.markAccountFailure(currentAccountIndex);
+                debugLog(`HTTP ${response.status} but not billing limit for key ${String(position)}`);
+                await accountManager.resetBillingLimitHits(requestAccountIndex);
+                await accountManager.markAccountFailure(requestAccountIndex);
               }
             } catch (error) {
               debugLog('Error reading response body:', error);
@@ -197,7 +215,7 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
 
           return response;
         } catch (error: unknown) {
-          await accountManager.markAccountFailure(currentAccountIndex);
+          await accountManager.markAccountFailure(requestAccountIndex);
           throw error;
         }
       }
