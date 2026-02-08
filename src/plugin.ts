@@ -79,6 +79,17 @@ function getRequestUrl(input: string | Request | URL): string {
   return input.url;
 }
 
+function buildRequestHeaders(input: string | Request | URL, init?: RequestInit): Headers {
+  const headers = new Headers(input instanceof Request ? input.headers : undefined);
+  const initHeaders = new Headers(init?.headers);
+
+  initHeaders.forEach((value, key) => {
+    headers.set(key, value);
+  });
+
+  return headers;
+}
+
 async function showToast(message: string, variant: 'info' | 'warning' | 'error' = 'info') {
   if (!openCodeClient?.tui?.showToast) {
     toastQueue.push({ message, variant });
@@ -132,29 +143,37 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
       if (!accountManager) {
         throw new Error('Account manager not initialized');
       }
-      const nextAccount = await accountManager.getNextAccount();
-      if (nextAccount) {
+
+      if (!originalFetch) {
+        throw new Error('Original fetch not available');
+      }
+
+      const allKeysNow = await accountManager.listKeys();
+      const total = allKeysNow.length;
+      const maxAttempts = Math.max(1, total);
+      let lastResponse: Response | null = null;
+
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const nextAccount = await accountManager.getNextAccount();
+        if (!nextAccount) {
+          break;
+        }
+
         const requestAccountIndex = nextAccount.index;
         const keyLabel = nextAccount.account.key.substring(0, 18) + '...';
         const position = requestAccountIndex + 1;
-        const allKeysNow = await accountManager.listKeys();
-        const total = allKeysNow.length;
-
-        await showToast(`🔄 Using key: ${keyLabel} (${String(position)}/${String(total)})`, 'info');
-
-        const headers = new Headers(init?.headers);
+        const headers = buildRequestHeaders(input, init);
         headers.set('x-api-key', nextAccount.account.key);
         headers.delete('Authorization');
+
+        await showToast(`🔄 Using key: ${keyLabel} (${String(position)}/${String(total)})`, 'info');
 
         const requestStartTime = Date.now();
         const today = new Date().toISOString().split('T')[0];
 
-        if (!originalFetch) {
-          throw new Error('Original fetch not available');
-        }
-
         try {
-          const response = await originalFetch(input, { ...init, headers });
+          const attemptInput = input instanceof Request ? input.clone() : input;
+          const response = await originalFetch(attemptInput, { ...init, headers });
           const responseTime = Date.now() - requestStartTime;
 
           if (response.status === 429) {
@@ -162,10 +181,17 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
             const retryAfterMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 60000;
             await accountManager.markAccountRateLimited(requestAccountIndex, retryAfterMs);
             await showToast(`⚠️ Key ${String(position)} rate limited`, 'warning');
+
+            if (attempt < maxAttempts - 1) {
+              lastResponse = response;
+              continue;
+            }
           } else if (response.ok) {
             await accountManager.markAccountSuccess(requestAccountIndex, responseTime, today);
+            return response;
           } else if (response.status >= 500) {
             await accountManager.markAccountFailure(requestAccountIndex);
+            return response;
           } else if (response.status === 400 || response.status === 403) {
             const clonedResponse = response.clone();
             try {
@@ -184,8 +210,11 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
               );
 
               if (isBillingLimit && accountManager) {
+                let shouldRetry = false;
+
                 if (isHardBillingLimit) {
                   await accountManager.markAccountBillingLimited(requestAccountIndex);
+                  shouldRetry = true;
                   const resetTime = new Date();
                   resetTime.setDate(resetTime.getDate() + 1);
                   resetTime.setHours(0, 0, 0, 0);
@@ -198,6 +227,7 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
                   );
                 } else {
                   const result = await accountManager.recordBillingLimitHit(requestAccountIndex);
+                  shouldRetry = result.isConfirmed;
                   if (result.isConfirmed) {
                     const resetTime = new Date();
                     resetTime.setDate(resetTime.getDate() + 1);
@@ -215,14 +245,27 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
                     );
                   }
                 }
-              } else if (accountManager) {
-                debugLog(`HTTP ${response.status} but not billing limit for key ${String(position)}`);
-                await accountManager.resetBillingLimitHits(requestAccountIndex);
-                await accountManager.markAccountFailure(requestAccountIndex);
+
+                if (shouldRetry && attempt < maxAttempts - 1) {
+                  await showToast('🔁 Retrying with next key...', 'info');
+                  lastResponse = response;
+                  continue;
+                }
+
+                return response;
               }
+
+              debugLog(`HTTP ${response.status} but not billing limit for key ${String(position)}`);
+              await accountManager.resetBillingLimitHits(requestAccountIndex);
+              await accountManager.markAccountFailure(requestAccountIndex);
+              return response;
             } catch (error) {
               debugLog('Error reading response body:', error);
+              return response;
             }
+          } else {
+            await accountManager.markAccountFailure(requestAccountIndex);
+            return response;
           }
 
           return response;
@@ -230,6 +273,10 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
           await accountManager.markAccountFailure(requestAccountIndex);
           throw error;
         }
+      }
+
+      if (lastResponse) {
+        return lastResponse;
       }
     }
 
