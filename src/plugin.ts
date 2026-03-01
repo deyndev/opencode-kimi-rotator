@@ -22,6 +22,13 @@ const HARD_BILLING_LIMIT_PATTERNS = [
   'from=quota-upgrade',
 ];
 
+const MEMBERSHIP_VERIFICATION_PATTERNS = [
+  'unable to verify your membership benefits',
+  'please ensure your membership is active',
+];
+
+const MEMBERSHIP_VERIFICATION_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+
 const DEBUG_MODE = process.env.KIMI_ROTATOR_DEBUG === 'true';
 
 let accountManager: KimiAccountManager | null = null;
@@ -208,6 +215,28 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
               const isHardBillingLimit = HARD_BILLING_LIMIT_PATTERNS.some((pattern) =>
                 bodyLower.includes(pattern)
               );
+              const isMembershipVerificationFailure = MEMBERSHIP_VERIFICATION_PATTERNS.some(
+                (pattern) => bodyLower.includes(pattern)
+              );
+
+              if (isMembershipVerificationFailure && accountManager) {
+                await accountManager.markAccountMembershipVerificationFailed(
+                  requestAccountIndex,
+                  MEMBERSHIP_VERIFICATION_COOLDOWN_MS
+                );
+                await showToast(
+                  `🚫 Key ${String(position)} membership verification failed - skipped for 24h`,
+                  'warning'
+                );
+
+                if (attempt < maxAttempts - 1) {
+                  await showToast('🔁 Retrying with next key...', 'info');
+                  lastResponse = response;
+                  continue;
+                }
+
+                return response;
+              }
 
               if (isBillingLimit && accountManager) {
                 let shouldRetry = false;

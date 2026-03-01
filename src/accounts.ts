@@ -162,6 +162,21 @@ export class KimiAccountManager {
     });
   }
 
+  async markAccountMembershipVerificationFailed(
+    index: number,
+    cooldownMs = 24 * 60 * 60 * 1000
+  ): Promise<void> {
+    const account = await this.getAccount(index);
+    const newHealthScore = Math.max(0, account.healthScore - 25);
+
+    await this.storage.updateAccount(index, {
+      healthScore: newHealthScore,
+      billingLimitResetTime: Date.now() + cooldownMs,
+      consecutiveBillingLimitHits: 0,
+      consecutiveFailures: account.consecutiveFailures + 1,
+    });
+  }
+
   async resetBillingLimitHits(index: number): Promise<void> {
     await this.storage.updateAccount(index, {
       consecutiveBillingLimitHits: 0,
