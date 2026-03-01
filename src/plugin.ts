@@ -23,6 +23,8 @@ const HARD_BILLING_LIMIT_PATTERNS = [
 ];
 
 const MEMBERSHIP_VERIFICATION_PATTERNS = [
+  "we're unable to verify your membership benefits at this time",
+  'unable to verify your membership benefits at this time',
   'unable to verify your membership benefits',
   'please ensure your membership is active',
 ];
@@ -37,6 +39,20 @@ let originalFetch: typeof globalThis.fetch | null = null;
 function debugLog(message: string, data?: unknown) {
   if (DEBUG_MODE) {
     console.log(`[KimiRotator Debug] ${message}`, data ?? '');
+  }
+}
+
+function normalizeResponseText(text: string): string {
+  return text.toLowerCase().replace(/[’]/g, "'").replace(/\s+/g, ' ').trim();
+}
+
+async function readResponseText(response: Response): Promise<string | null> {
+  try {
+    const clonedResponse = response.clone();
+    return await clonedResponse.text();
+  } catch (error) {
+    debugLog('Error reading response body:', error);
+    return null;
   }
 }
 
@@ -183,40 +199,28 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
           const response = await originalFetch(attemptInput, { ...init, headers });
           const responseTime = Date.now() - requestStartTime;
 
-          if (response.status === 429) {
-            const retryAfter = response.headers.get('retry-after');
-            const retryAfterMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 60000;
-            await accountManager.markAccountRateLimited(requestAccountIndex, retryAfterMs);
-            await showToast(`⚠️ Key ${String(position)} rate limited`, 'warning');
-
-            if (attempt < maxAttempts - 1) {
-              lastResponse = response;
-              continue;
-            }
-          } else if (response.ok) {
+          if (response.ok) {
             await accountManager.markAccountSuccess(requestAccountIndex, responseTime, today);
             return response;
-          } else if (response.status >= 500) {
-            await accountManager.markAccountFailure(requestAccountIndex);
-            return response;
-          } else if (response.status === 400 || response.status === 403) {
-            const clonedResponse = response.clone();
-            try {
-              const bodyText = await clonedResponse.text();
-              const bodyLower = bodyText.toLowerCase();
+          }
+
+          if (response.status >= 400 && response.status < 500) {
+            const bodyText = await readResponseText(response);
+            if (bodyText !== null) {
+              const bodyNormalized = normalizeResponseText(bodyText);
 
               debugLog(`HTTP ${response.status} for key ${String(position)}`, {
                 bodyPreview: bodyText.substring(0, 200).replace(/\s+/g, ' '),
               });
 
               const isBillingLimit = BILLING_LIMIT_PATTERNS.some((pattern) =>
-                bodyLower.includes(pattern)
+                bodyNormalized.includes(pattern)
               );
               const isHardBillingLimit = HARD_BILLING_LIMIT_PATTERNS.some((pattern) =>
-                bodyLower.includes(pattern)
+                bodyNormalized.includes(pattern)
               );
               const isMembershipVerificationFailure = MEMBERSHIP_VERIFICATION_PATTERNS.some(
-                (pattern) => bodyLower.includes(pattern)
+                (pattern) => bodyNormalized.includes(pattern)
               );
 
               if (isMembershipVerificationFailure && accountManager) {
@@ -283,16 +287,25 @@ export const KimiRotatorPlugin: Plugin = async ({ client }) => {
 
                 return response;
               }
-
-              debugLog(`HTTP ${response.status} but not billing limit for key ${String(position)}`);
-              await accountManager.resetBillingLimitHits(requestAccountIndex);
-              await accountManager.markAccountFailure(requestAccountIndex);
-              return response;
-            } catch (error) {
-              debugLog('Error reading response body:', error);
-              return response;
             }
+          }
+
+          if (response.status === 429) {
+            const retryAfter = response.headers.get('retry-after');
+            const retryAfterMs = retryAfter ? parseInt(retryAfter, 10) * 1000 : 60000;
+            await accountManager.markAccountRateLimited(requestAccountIndex, retryAfterMs);
+            await showToast(`⚠️ Key ${String(position)} rate limited`, 'warning');
+
+            if (attempt < maxAttempts - 1) {
+              lastResponse = response;
+              continue;
+            }
+          } else if (response.status >= 500) {
+            await accountManager.markAccountFailure(requestAccountIndex);
+            return response;
           } else {
+            debugLog(`HTTP ${response.status} not matched for retry on key ${String(position)}`);
+            await accountManager.resetBillingLimitHits(requestAccountIndex);
             await accountManager.markAccountFailure(requestAccountIndex);
             return response;
           }
